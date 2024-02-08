@@ -1,0 +1,11 @@
+Uses sessions/cookies to store user prefs and login info
+Must accept all cookies to use site. All cookies are strictly used for site.
+
+Cookie info, for prefs:
+    Dark mode
+
+Login info:
+    username - As per minecraft login
+    email - For account recovery
+    roles - Assigned by Admin/owner
+    groups = Assigned by Admin/owner

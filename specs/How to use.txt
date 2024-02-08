@@ -1,0 +1,15 @@
+Preferred method is over https, but you will need a cert. One is supplied, with a CA
+
+You will need to import the CA into your browser to accept TLS connections with the supplied certificates.
+You can also use open-ssl to create your own CA and cert and use those.
+	I have supplied instructions how to do this, but you're on your own with troubleshooting it working.
+Another option is to acquire and supply your own cert signed by a common CA. I don't use this method for teting, so you'll need to look into it.
+
+You can use http connections as well, but some features may not be supported.
+The only password transferred is the user's during login. 
+	At no other time is ANY password transferred between the client and browser.
+	That said, when making a login request between nodejs and rcon, the password is sent PLAIN TEXT, AS PER RCON SPECS!
+		There is NOTHING that I can do about this, your most secure option is to host this and your minecraft server on the same host.
+		
+With all that, the file at /opt/miracon/MIRACON.pem can be replaced with a file of your choice (PEM format).
+The instructions provided give a PEM format certificate that can be used.

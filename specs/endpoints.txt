@@ -1,0 +1,3 @@
+end points
+
+POST /login - Expects JSON body with username and BASE64 encoded password
