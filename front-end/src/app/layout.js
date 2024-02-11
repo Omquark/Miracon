@@ -20,11 +20,9 @@ export default function RootLayout({ children }) {
   const testDarkMode = useRef(false);
 
   const setUserPrefs = (userPrefs) => {
-    console.log('userPrefs', userPrefs);
     prefRef.current = userPrefs;
     setPrefs(userPrefs);
     testDarkMode.current = !testDarkMode.current;
-    console.log('testDarkMode.current', testDarkMode.current);
   }
 
   useEffect(() => {

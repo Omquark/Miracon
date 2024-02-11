@@ -10,8 +10,6 @@ export default function Sidebar() {
     const { prefs, setPrefs } = useContext(UserPrefContext);
 
     const expand = () => {
-        console.log('prefs', prefs);
-        console.log('Calling setPrefs with', {...prefs, sidebarOpen: !prefs.sidebarOpen})
         setPrefs({...prefs, sidebarOpen: !prefs.sidebarOpen});
     }
 
@@ -33,7 +31,7 @@ export default function Sidebar() {
                 <div className='absolute text-xl right-0 top-1/2'>
                     <button
                         className={
-                            'dark border-2 border-cyan-700 dark:border-cyan-300 p-1 rounded-full ' +
+                            'dark border-2 bg-white dark:bg-black border-cyan-700 dark:border-cyan-300 p-1 rounded-full ' +
                             'text-cyan-700 dark:text-cyan-300 ' + 
                             `duration-300 ${prefs.sidebarOpen ? '' : 'translate-x-14 rotate-180'} `
                         }

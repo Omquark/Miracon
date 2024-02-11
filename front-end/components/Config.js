@@ -45,10 +45,16 @@ function init(reload) {
     if (reload) logEvent(LogLevel.INFO, 'Re-initializing the configuration. This will cause a restart in the server!');
     else logEvent(LogLevel.INFO, 'Initializing the configuration for miracon');
 
-    const configPath = !process.env.NODE_ENV || process.env.NODE_ENV === 'production' ? '/etc/opt/miracon' : '..\\config';
+    const configPath = !process.env.NODE_ENV || process.env.NODE_ENV === 'production' ? '/etc/opt/miracon' : '.\\config';
     const configFile = 'config.prop';
+    let configString;
 
-    const configString = readFileSync(join(configPath, configFile), 'utf-8');
+    try{
+        configString = readFileSync(join(configPath, configFile), 'utf-8');
+    } catch (err) {
+        logEvent(LogLevel.ERROR, err);
+        throw new Error(`Unable to find configuration file @${join(configPath, configFile)}`);
+    }
 
     const configData = configString.split(/[\r\n]/)
         .filter(line => line !== '')

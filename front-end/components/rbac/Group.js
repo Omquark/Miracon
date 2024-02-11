@@ -52,4 +52,35 @@ function removeGroups(group) {
     return [{}];
 }
 
-module.exports = { addGroups, getGroups, updateGroups, removeGroups }
+/**
+ * Takes an Array of Users or Groups and returns the roles contained by each
+ * @param {Array<User> | Array<Group>} target An array of users or groups to find the roles for
+ * @return {Array<string>} A string with the role ids pulled from the target
+ */
+function resolveRoles(target){
+
+    const pulledRoles = []
+
+    console.log('target', target);
+
+    target.forEach(ob => {
+        if(ob.roles && Array.isArray(ob.roles) && ob.roles.length > 0){
+            ob.roles.forEach(role => pulledRoles.push(role));
+        }
+        if(ob.groups && Array.isArray(ob.groups) && ob.groups.length > 0){
+            const pulledGroups = getGroups(ob.groups);
+            pulledGroups.forEach(group => {
+                console.log('ob group', group);
+                if(group.roles && isArray(group.roles) && group.roles.length > 0){
+                    groups.roles.forEach(role => {
+                        pulledRoles.push(role);
+                    })
+                }
+            });
+        }
+    });
+
+    return pulledRoles;
+}
+
+module.exports = { addGroups, getGroups, updateGroups, removeGroups, resolveRoles }

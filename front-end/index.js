@@ -4,7 +4,6 @@ const app = express();
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const http = require('http');
-const { join } = require('node:path');
 const nextReq = require('next');
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = nextReq({ dev });
@@ -15,14 +14,16 @@ const { logEvent, LogLevel, logError } = require('./components/Log');
 const { checkAndLoginUser } = require('./components/session/UserLogin');
 const { LoginSessionOpts } = require('./components/session/LoginSession');
 const { getRoles, updateRoles } = require('./components/rbac/Role');
-const { getGroups, updateGroups } = require('./components/rbac/Group');
+const { getGroups, updateGroups, resolveRoles } = require('./components/rbac/Group');
 const { getUsers, updateUsers } = require('./components/rbac/User');
 const { InitUsers } = require('./components/rbac/Init');
-const { parse } = require('url');
+const { InitCommands, CheckAuthorization } = require('./components/rbac/Commands');
+const cmdDef = require('./components/commands/CmdDef');
 
 nextApp.prepare().then(() => {
 
     init();
+
     const Config = getConfig();
 
     const bodyParserJsonOptions = {
@@ -37,7 +38,6 @@ nextApp.prepare().then(() => {
 
     app.post('/login', bodyParserJson, async (req, res) => {
         const userinfo = req.body;
-
         const pulledInfo = await checkAndLoginUser(userinfo);
 
         if (pulledInfo.error) {
@@ -50,9 +50,49 @@ nextApp.prepare().then(() => {
         res.status(200).send(pulledInfo);
     });
 
+    app.use(/\/roles|\/groups|\/users|\/admin/, (req, res) => {
+        const userInfo = req.session.userInfo;
+
+        if (!userInfo) {
+            res.status(401).send({ error: 'User is not logged in' });
+            return;
+        }
+
+        const user = getUsers({ name: req.session.userInfo.name })
+        if (!user[0].name || !user[0].id) {
+            res.status(401).send({ error: 'User could not be found' })
+            return;
+        }
+        const testRoles = resolveRoles(user);
+
+        console.log('testRoles', testRoles);
+
+        if (!testRoles || !Array.isArray(testRoles) || testRoles.length === 0) {
+            res.status(403).send({ error: 'No roles could be found for user' });
+            return;
+        }
+        next();
+    });
+
     app.get('/roles', (req, res) => {
-        const pulledRoles = getRoles()
-        res.status(200).send(JSON.stringify(pulledRoles));
+
+        const userInfo = req.session.userInfo;
+        const user = getUsers({ name: userInfo.name })
+        const testRoles = user[0].roles;
+
+        const roleCmd = cmdDef.Commands.find(command => command.name === 'READ_ROLE');
+        if (!roleCmd) {
+            logEvent(LogLevel.WARN, 'The read role command could not be found!');
+            res.status(403).send({ error: 'No role associated with this command' })
+        }
+        const authorized = CheckAuthorization(testRoles, roleCmd.role);
+
+        if (authorized) {
+            res.status(200).send(JSON.stringify(getRoles()));
+        }
+        else {
+            res.status(403).send({ error: 'You are not authorized for this command' })
+        }
     });
 
     app.post('/roles', bodyParserJson, (req, res) => {
@@ -165,16 +205,28 @@ nextApp.prepare().then(() => {
     });
 
     app.use('/', (req, res) => {
+        if (req.path.includes('admin')) {
+            if (!req.session.userInfo) {
+                res.status(401).send({ error: 'You must be logged in to acces this page' });
+                return;
+            }
+            if (!req.session.userInfo.roles || req.session.userInfo.roles.length === 0) {
+                res.status(401).send({ error: 'You are logged in, but you do not have access granted. Talk to the server owner about your access' });
+                return;
+            }
+        }
         logEvent(LogLevel.DEBUG, 'Handing off to next to handle requst');
         return handle(req, res)
     })
 
     if (Config.nodeConfig.initUsers) {
         InitUsers();
+        InitCommands();
     }
 
     http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
-        logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
     });
+
+    logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
 
 });

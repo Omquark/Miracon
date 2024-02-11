@@ -1,0 +1,47 @@
+# Defines variables defualt values and a description. These values are first checked in the appropriate env vars.
+
+# Where the Minecraft server files can be located.
+# Specifically, we need banned-ips.json, banned-player.json, ops.json, and whitelist.json
+# As long as all these file exist, nothing else is needed. You will need the live files if you want to live edit.
+MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
+
+# The install path of miracon
+# Defaults to /opt/miracon
+MIRACON_INSTALL_DIRECTORY=/opt/miracon
+
+# Log level for log output
+# Values can be DEBUG, INFO, WARN, and ERROR. If not defined, defaults to DEBUG. ERROR level will always be printed.
+LOG_LEVEL=DEBUG
+
+# Where to write the log files. It will be attempted to be created if it does nt exist.
+# If the file cannot ultimately be created, log entries will be printed to the installation directory.
+LOG_PATH=/var/miracon
+
+# Subdirectory where to print the audit folder within the LOG_PATH. It will be attempted to be created if it is not found.
+# If the logs cannot be written to the location, it will be written to the subfolder in the install directory.
+LOG_FOLDER=logs
+
+# Where to write the audit logs to. Audits log every command run with detailed info on the command.
+# As the logs, if this does not exist, it will attempt to be created. If it fails, it will write to the installation directory
+AUDIT_FOLDER=audit
+
+# Server address of the minecraft server. This defaults to localhost, and the server will fail if it cannot connect at startup
+MINECRAFT_ADDRESS=localhost
+
+# Server port used by the RCON server. Valid values are anything between 1 and 65535. Defaults to 25575.
+MINECRAFT_PORT=25575
+
+# A BASE64 encoding of the password to the rcon server. It defaults to the encoding of 'password'.
+MINECRAFT_PASSWORD=cGFzc3dvcmQK
+
+# The port used by the NodeJS server
+WEB_SERVER_PORT=3011
+
+# Determines if we should create the users from the ops file from the minecraft directory.
+# Setting this to 1 will overwrite the users database with new users/groups to align with minecraft security.
+# Setting this to 0 will preserve the users database.
+INIT_USERS=1
+
+# When set to 1, creates a back-up admin with access to users roles and groups for recovery.
+# This admin can be delted and will be overwritten in the event of an emergency.
+EMERGENCY_USER=0

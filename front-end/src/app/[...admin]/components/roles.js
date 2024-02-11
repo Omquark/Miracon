@@ -5,12 +5,14 @@ import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
 import { AdminRolesContext, rolesActionTypes } from './context/roles/roles';
+import { IoMdArrowDropdown } from 'react-icons/io';
 
 export default function Role() {
 
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
+    const [sorted, setSorted] = useState({ column: 'id', ascending: true })
 
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
@@ -88,6 +90,17 @@ export default function Role() {
         </>
     )
 
+    const sortBy = (column) => {
+        const newSorted = { ...sorted };
+        if (newSorted.column === column) {
+            newSorted.ascending = !sorted.ascending;
+        } else {
+            newSorted.column = column;
+            newSorted.ascending = true;
+        }
+        setSorted(newSorted);
+    }
+
     return (
         <div className='text-center'>
             <form id='roles-form'>
@@ -104,25 +117,53 @@ export default function Role() {
             <table className='table-fixed border border-collapse w-full'>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
+                        <th className='mx-auto cursor-pointer' onClick={() => sortBy('id')}>
+                            <div className='flex justify-center '>
+                                ID
+                                {
+                                    sorted.column === 'id' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
+                        <th className='mx-auto cursor-pointer ' onClick={() => sortBy('name')}>
+                            <div className='flex justify-center '>
+                                Name
+                                {
+                                    sorted.column === 'name' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     {
                         adminRoles && Array.isArray(adminRoles) ?
-                            adminRoles.map(role => {
-                                if (!role) return <></>
-                                return (
-                                    <tr
-                                        className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
-                                        onClick={() => showRoleModal(role)}
-                                        key={role.id}>
-                                        <td>{role.id}</td>
-                                        <td>{role.name}</td>
-                                    </tr>
-                                )
-                            })
+                            adminRoles
+                                .sort((a, b) => {
+                                    return sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column];
+                                })
+                                .map(role => {
+                                    if (!role) return <></>
+                                    return (
+                                        <tr
+                                            className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
+                                            onClick={() => showRoleModal(role)}
+                                            key={role.id}>
+                                            <td>{role.id}</td>
+                                            <td>{role.name}</td>
+                                        </tr>
+                                    )
+                                })
                             : <>{console.log('adminRoles', adminRoles)}</>//adminRroles && Array.isArray(Roles) ? 
                     }
                 </tbody>

@@ -82,7 +82,8 @@ function addObjects(type, object) {
 
     if(addedObjects.length === 0){
         logEvent(LogLevel.INFO, 'No objects have been added')
-        addedObjects.push({});
+        return[{}];
+        //addedObjects.push({});
     }
 
     return addedObjects;

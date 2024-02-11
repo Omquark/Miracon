@@ -1,4 +1,4 @@
-import { IoMdArrowDropdown } from 'react-icons/io'
+import { IoMdArrowDropdown } from 'react-icons/io';
 import { useEffect, useRef, useState } from "react";
 
 export default function Selection(props) {

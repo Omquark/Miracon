@@ -4,6 +4,12 @@ const { logEvent, LogLevel } = require("../Log");
 const { getUsers } = require("../rbac/User");
 const { getGroups } = require("../rbac/Group");
 
+/**
+ * Checkes the userInfo against the User db to confirm username and password.
+ * @param {Object} userInfo containse username and password used to check against the user DB
+ * @returns Either an error message to pass to the front end or user sessionInfo object, which is 
+ * username, email, user roles, resolved from roles and groups the user belongs to
+ */
 async function checkAndLoginUser(userInfo) {
     if (!userInfo.username || !userInfo.password) {
         logEvent(LogLevel.DEBUG, 'Attempted to login without sa username or password');
