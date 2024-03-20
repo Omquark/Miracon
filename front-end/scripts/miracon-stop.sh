@@ -1,1 +1,0 @@
-kill $(ps -A | grep node | awk '{print $1}')

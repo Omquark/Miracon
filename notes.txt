@@ -1,0 +1,12 @@
+Default passwords for creates users = Mi1n3e&Cr4\tf$
+
+Installation steps - Docker
+Java is pre-installed - validate, install if needed
+Install nodejs
+copy temp to install directory
+copy config to config install directory
+
+
+
+Locked up endpoints with security, user must be logged in to access most endpoints.
+Implemented command security, validates user roles before allowing commands with auditing.

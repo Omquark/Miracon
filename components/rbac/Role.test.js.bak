@@ -1,0 +1,382 @@
+jest.doMock('../Log', () => {
+    return {
+        __esmodule: false,
+        logEvent: (logLevel, message) => {
+            //we don't need the debug messages
+            if(logLevel.level > 0) console.log(`${logLevel.name} ${message}`);
+        },
+        LogLevel: {
+            ALL: { name: 'ALL', level: -1 },
+            DEBUG: { name: 'DEBUG', level: 0 },
+            INFO: { name: 'INFO', level: 1 },
+            WARN: { name: 'WARN', level: 2 },
+            ERROR: { name: 'ERROR', level: 255 },
+        }
+    }
+});
+
+let mockUUID = 0;
+jest.doMock('uuid', () => {
+    return {
+        __esmodule: false,
+        v4: () => { mockUUID++; return mockUUID; },
+    }
+});
+
+jest.doMock('./RoleDefs', () => {
+    Role = {
+        name: 'Test Role 1',
+        id: 0,
+    };
+    return {
+        Role: Role,
+        Roles: [Role],
+    }
+});
+
+describe('Test the addRole function with multiple valid and invalid inputs.', () => {
+
+    beforeEach(() => {
+        jest.resetModules();
+        jest.resetAllMocks();
+    });
+
+    it('should show the adds with single and multiple adds in the Role database', () => {
+        const { addRoles } = require("./Role");
+
+        const spy = jest.spyOn(console, 'log');
+
+        const testRole = { name: 'Test Role 2' };
+        const testRole2 = [{ name: 'Test Role 3' }, { name: 'Test Role 4' }];
+
+        addRoles(testRole);
+        addRoles(testRole2);
+
+        expect(spy).toHaveBeenCalledTimes(9);
+        expect(spy).toHaveBeenNthCalledWith(1, `INFO Adding role ${JSON.stringify(testRole)} to array.`)
+        expect(spy).toHaveBeenNthCalledWith(2, `INFO Received objects, removing keys not matching [name, id]`)
+        expect(spy).toHaveBeenNthCalledWith(3, 'INFO Attempting to add roles to the master list.');
+        expect(spy).toHaveBeenNthCalledWith(4, `INFO Successfully added role ${JSON.stringify(testRole)}`)
+        expect(spy).toHaveBeenNthCalledWith(5, `INFO Adding role ${JSON.stringify(testRole2)} to array.`)
+        expect(spy).toHaveBeenNthCalledWith(6, `INFO Received objects, removing keys not matching [name, id]`)
+        expect(spy).toHaveBeenNthCalledWith(7, 'INFO Attempting to add roles to the master list.');
+        expect(spy).toHaveBeenNthCalledWith(8, `INFO Successfully added role ${JSON.stringify(testRole2[0])}`)
+        expect(spy).toHaveBeenNthCalledWith(9, `INFO Successfully added role ${JSON.stringify(testRole2[1])}`)
+
+        spy.mockClear();
+    });
+
+    it('should show the Roles were not added because of invalid username and naming conflict', () => {
+        const { addRoles } = require("./Role");
+
+        const spy = jest.spyOn(console, "log");
+
+        const invalidRole = { name: '' };
+        const invalidRole2 = [{ name: '' }, { name: 'Test Role 1' }]
+
+        addRoles(invalidRole);
+        addRoles(invalidRole2);
+
+        expect(spy).toHaveBeenCalledTimes(11);
+        expect(spy).toHaveBeenNthCalledWith(1, `INFO Adding role ${JSON.stringify(invalidRole)} to array.`)
+        expect(spy).toHaveBeenNthCalledWith(2, `INFO Received objects, removing keys not matching [name, id]`);
+        expect(spy).toHaveBeenNthCalledWith(3, 'INFO Attempting to add roles to the master list.');
+        expect(spy).toHaveBeenNthCalledWith(4, 'WARN Attempted to add role with no name given! Names are required to add the role.');
+        expect(spy).toHaveBeenNthCalledWith(5, 'WARN Name the role and try again.');
+        expect(spy).toHaveBeenNthCalledWith(6, `INFO Adding role ${JSON.stringify(invalidRole2)} to array.`)
+        expect(spy).toHaveBeenNthCalledWith(7, `INFO Received objects, removing keys not matching [name, id]`);
+        expect(spy).toHaveBeenNthCalledWith(8, 'INFO Attempting to add roles to the master list.');
+        expect(spy).toHaveBeenNthCalledWith(9, 'WARN Attempted to add role with no name given! Names are required to add the role.');
+        expect(spy).toHaveBeenNthCalledWith(10, 'WARN Name the role and try again.');
+        expect(spy).toHaveBeenNthCalledWith(11, `WARN role ${JSON.stringify(invalidRole2[1])} already exists!`);
+        spy.mockClear();
+    });
+
+    it('Should not add to roles because of a naming conflict, should ignore case', () => {
+        const { addRoles } = require("./Role");
+
+        const spy = jest.spyOn(console, "log");
+
+        const invalidRole = [{ name: 'Test Role 1' }, { name: 'TEST ROLE 1' }, { name: 'test role 1' }];
+
+        addRoles(invalidRole);
+
+        expect(spy).toHaveBeenCalledTimes(6);
+
+        expect(spy).toHaveBeenNthCalledWith(1, `INFO Adding role ${JSON.stringify(invalidRole)} to array.`);
+        expect(spy).toHaveBeenNthCalledWith(2, `INFO Received objects, removing keys not matching [name, id]`);
+        expect(spy).toHaveBeenNthCalledWith(3, `INFO Attempting to add roles to the master list.`);
+        expect(spy).toHaveBeenNthCalledWith(4, `WARN role ${JSON.stringify(invalidRole[0])} already exists!`);
+        expect(spy).toHaveBeenNthCalledWith(5, `WARN role ${JSON.stringify(invalidRole[1])} already exists!`);
+        expect(spy).toHaveBeenNthCalledWith(6, `WARN role ${JSON.stringify(invalidRole[2])} already exists!`);
+
+        spy.mockClear();
+    });
+});
+
+describe('Test the getRole function to ensure it retrieves the correct data.', () => {
+
+    beforeEach(() => {
+        jest.doMock('./RoleDefs', () => {
+            Role = {
+                name: 'Test Role 1',
+                id: 0,
+            };
+            return {
+                Role: Role,
+                Roles: [Role, { name: 'Test Role 2', id: 1 }, { name: 'Test Role 3', id: 2 }, { name: 'Test Role 4', id: 3 },],
+            }
+        });
+        jest.resetModules();
+        jest.resetAllMocks();
+    });
+
+    afterAll(() => {
+        jest.clearAllMocks();
+    })
+
+    it('should retrieve all Roles from the array, and make sure its a deep copy', () => {
+        const { getRoles } = require('./Role');
+
+        const testRoles = [
+            { name: 'Test Role 1', id: 0 },
+            { name: 'Test Role 2', id: 1 },
+            { name: 'Test Role 3', id: 2 },
+            { name: 'Test Role 4', id: 3 },
+        ]
+
+        let roles = getRoles();
+
+        expect(roles).toEqual(testRoles);
+
+        roles[0] = 'Test Role Renamed';
+        roles = getRoles();
+        expect(roles[0]).not.toEqual({ name: 'Test Role Renamed', id: 0});
+
+    });
+
+    it('should retrieve each individual role as requested, confirm roles are deep copies' , () => {
+        const { getRoles } = require('./Role');
+
+        const testRole1 = { name: 'Test Role 1', id: 0 };
+        const testRole2 = { name: 'Test Role 2', id: 1 };
+        const testRole3 = { name: 'Test Role 3', id: 2 };
+        const testRole4 = { name: 'Test Role 4', id: 3 };
+
+        const pulledRoles1 = getRoles({ id: 0 });
+        const pulledRoles2 = getRoles({ name: 'Test Role 1'});
+        const pulledRoles3 = getRoles({ id: 2 });
+        const pulledRoles4 = getRoles({ name:  'Test Role 3'});
+
+        expect(pulledRoles1.length).toBe(1);
+        expect(pulledRoles1[0]).toEqual(testRole1);
+        expect(pulledRoles2.length).toBe(1);
+        expect(pulledRoles2[0]).toEqual(testRole1);
+        expect(pulledRoles1[0]).not.toBe(testRole2);
+        expect(pulledRoles3.length).toBe(1);
+        expect(pulledRoles3[0]).toEqual(testRole3);
+        expect(pulledRoles4.length).toBe(1);
+        expect(pulledRoles4[0]).toEqual(testRole3);
+        expect(pulledRoles3[0]).not.toBe(testRole4);
+    });
+
+    it('should retrieve multiple rolls by id and name, and log roles not found', () => {
+        const { getRoles } = require('./Role');
+
+        const spy = jest.spyOn(console, 'log');
+
+        const testRole1 = { name: 'Test Role 1', id: 0 };
+        const testRole2 = { name: 'Test Role 2', id: 1 };
+        const testRole3 = { name: 'Test Role 3', id: 2 };
+        const testRole4 = { name: 'Test Role 4', id: 3 };
+
+        const pulledRoles1 = getRoles([{ id: 0 }, { name: 'Test Role 2' }]);
+        const pulledRoles2 = getRoles({ name: 'Test Role 1' });
+        const pulledRoles3 = getRoles([{ id: 2 }, { name: 'Test Role 4' }]);
+        const pulledRoles4 = getRoles({ name:  'Test Role 3' });
+        spy.mockClear();
+        const failedRoles1 = getRoles([{ id: 0 }, { name: 'Non existing role 1' }]);
+        expect(spy).toHaveBeenCalledTimes(6);
+        expect(spy).toHaveBeenNthCalledWith(1, 'INFO Retrieving roles from array');
+        expect(spy).toHaveBeenNthCalledWith(2, `DEBUG object ${JSON.stringify([{ id: 0 }, { name: 'Non existing role 1' }])}`);
+        expect(spy).toHaveBeenNthCalledWith(3, 'INFO Attempting to retrieve role');
+        expect(spy).toHaveBeenNthCalledWith(4, `INFO Adding ${JSON.stringify(testRole1)} to found objects.`);
+        expect(spy).toHaveBeenNthCalledWith(5, `WARN The role ${JSON.stringify({ name: 'Non existing role 1' })} could not be found!`);
+        expect(spy).toHaveBeenNthCalledWith(6, `DEBUG foundObjs: ${JSON.stringify(failedRoles1)}`);
+        spy.mockClear();
+
+        const failedRoles2 = getRoles({id: 1000});
+
+        expect(pulledRoles1.length).toBe(2);
+        expect(pulledRoles1[0]).toEqual(testRole1);
+        expect(pulledRoles1[1]).toEqual(testRole2)
+
+        expect(pulledRoles2.length).toBe(1);
+        expect(pulledRoles2[0]).toEqual(testRole1);
+        expect(pulledRoles1[0]).not.toBe(testRole2);
+
+        expect(pulledRoles3.length).toBe(2);
+        expect(pulledRoles3[0]).toEqual(testRole3);
+
+        expect(pulledRoles4.length).toBe(1);
+        expect(pulledRoles4[0]).toEqual(testRole3);
+
+        expect(pulledRoles3[0]).not.toBe(testRole4);
+
+        expect(failedRoles1.length).toBe(1);
+        expect(failedRoles1[0]).toEqual(testRole1);
+
+        expect(failedRoles2.length).toBe(1);
+        expect(Object.keys(failedRoles2[0]).length).toBe(0);
+    });
+});
+
+describe('Test the updateRole function to Roles are updated.', () => {
+    beforeEach(() => {
+        jest.doMock('./RoleDefs', () => {
+            Role = {
+                name: 'Test Role 1',
+                id: 0,
+            };
+            Group = {
+                name: 'Test Group 1',
+                roles: [Role.id],
+                id: 0,
+            };
+            User = {
+                name: 'Test User 1',
+                password: 'Test Password 1',
+                email: 'test.email@email.com',
+                preferences: {},
+                roles: undefined,
+                groups: [Group.id],
+                id: 0,
+            }
+            return {
+                Role: Role,
+                Roles: [Role, { name: 'Test Role 2', id: 1 }, { name: 'Test Role 3', id: 2 }, { name: 'Test Role 4', id: 3 },],
+                Groups: [Group],
+                Users: [User],
+            }
+        });
+        jest.resetModules();
+        jest.resetAllMocks();
+    });
+
+    it('should update the role', () => {
+        const { updateRoles } = require('./Role');
+
+        const testRole = updateRoles({ id: 0 }, { name: 'New Role 1'});
+
+        expect(testRole.length).toBe(1);
+        expect(testRole[0]).toEqual({ name: 'New Role 1', id: 0 });
+    });
+
+    it('should not update the role because id does not match', () => {
+        const { updateRoles } = require('./Role');
+
+        const testRole = updateRoles( { id: 100 }, { name: 'New Role 1' });
+
+        console.log(testRole);
+
+        expect(testRole.length).toBe(1);
+        expect(Object.keys(testRole[0]).length).toBe(0);
+    });
+
+    it('should update all roles found, and ignore but report those not found. Reports attempted changes but will not change ids', () => {
+        const { updateRoles } = require('./Role');
+
+        const oldRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2'}, { name: 'Test Role 10'}, { name: 'Test Role 11'}];
+        const newRoles = [{ name: 'New Role 1' }, { id: 10 }, { name: 'New Role 10'}, { id: 10 }];
+
+        const changedRoles = updateRoles(oldRoles, newRoles);
+        expect(changedRoles.length).toBe(2);
+        expect(changedRoles).toEqual([{ name: 'New Role 1', id: 0 }, { name: 'Test Role 2', id: 1 }, ]);
+    });
+
+    it('should not allow an update of a name to an existing role and report', () => {
+        const { updateRoles } = require ('./Role');
+
+        const oldRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }];
+        const newRoles = [{ name: 'Test Role 3' }, { name: 'Test Role 1' }];
+
+        const changedRoles = updateRoles(oldRoles, newRoles);
+
+        console.log('changedRoles', changedRoles)
+        expect(changedRoles.length).toBe(1);
+        expect(Object.keys(changedRoles[0]).length).toBe(0);
+    });
+});
+
+describe('Test the removeRole and confirm the role(s) are removed, groups and users are updated, and report any failures', () => {
+    beforeEach(() => {
+        jest.doMock('./RoleDefs', () => {
+            Role = {
+                name: 'Test Role 1',
+                id: 0,
+            };
+            Group = {
+                name: 'Test Group 1',
+                roles: [Role.id],
+                id: 0,
+            };
+            User = {
+                name: 'Test User 1',
+                password: 'Test Password 1',
+                email: 'test.email@email.com',
+                preferences: {},
+                roles: [Role.id],
+                groups: [Group.id],
+                id: 0,
+            }
+            return {
+                Role: Role,
+                Roles: [Role, { name: 'Test Role 2', id: 1 }, { name: 'Test Role 3', id: 2 }, { name: 'Test Role 4', id: 3 },],
+                Groups: [Group, { name: 'Test Group 2', id: 2, roles: undefined }],
+                Users: [User, { 
+                    name: 'Test Group 2',
+                    password: 'Test Password 2',
+                    email: 'test.email.2@email.com',
+                    preferences: {},
+                    roles: [],
+                    groups: [],
+                    id: 1
+                }],
+            }
+        });
+        jest.resetModules();
+        jest.resetAllMocks();
+    });
+
+
+    it.skip('Should remove the role without cascading', () => {
+        const { removeRoles } = require('./Role');
+
+        const testRole1 = { name: 'Test Role 2', };
+        const testRole2 = [{ name: 'Test Role 3', }, { id: 3 }];
+        
+        const removedRoles1 = removeRoles(testRole1);
+        const removedRoles2 = removeRoles(testRole2);
+
+        expect(removedRoles1.length).toBe(1)
+        expect(removedRoles1[0]).toEqual({ name: 'Test Role 2', id: 1});
+        expect(removedRoles1[0]).not.toBe(testRole1);
+
+        expect(removedRoles2.length).toBe(2)
+        expect(removedRoles2[0]).toEqual({ name: 'Test Role 3', id: 2});
+        expect(removedRoles2[0]).not.toBe(testRole2[0]);
+        expect(removedRoles2[1]).toEqual({ name: 'Test Role 4', id: 3 });
+        expect(removedRoles2[1]).not.toBe(testRole2[1]);
+    });
+
+    it('Should cascade remove roles from Users and Groups', () => {
+        const { removeRoles } = require('./Role');
+        const testRole1 = { name: 'Test Role 1', };
+
+        const removedRoles1 = removeRoles(testRole1);
+
+        expect(removedRoles1.length).toBe(1);
+        expect(removedRoles1[0]).toEqual({ name: 'Test Role 1', id: 0 });
+        expect(removedRoles1).not.toBe(testRole1);
+    });
+});
