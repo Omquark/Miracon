@@ -7,7 +7,7 @@ MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
 
 # The install path of miracon
 # Defaults to /opt/miracon
-MIRACON_INSTALL_DIRECTORY=/opt/miracon
+MIRACON_INSTALL_DIRECTORY=C:\opt\miracon
 
 # Log level for log output
 # Values can be DEBUG, INFO, WARN, and ERROR. If not defined, defaults to DEBUG. ERROR level will always be printed.
@@ -31,7 +31,8 @@ MINECRAFT_ADDRESS=localhost
 # Server port used by the RCON server. Valid values are anything between 1 and 65535. Defaults to 25575.
 MINECRAFT_PORT=25575
 
-# A BASE64 encoding of the password to the rcon server. It defaults to the encoding of 'password'.
+# A BASE64 encoding of the password to the rcon server. It defaults to the encoding of 'password'. 
+# This should not be used in production, as it opens the minecraft server to remote admin access.
 MINECRAFT_PASSWORD=cGFzc3dvcmQK
 
 # The port used by the NodeJS server
@@ -43,5 +44,25 @@ WEB_SERVER_PORT=3011
 INIT_USERS=1
 
 # When set to 1, creates a back-up admin with access to users roles and groups for recovery.
-# This admin can be delted and will be overwritten in the event of an emergency.
+# This admin can be deleted and will be overwritten in the event of an emergency.
 EMERGENCY_USER=0
+
+# The username to connect to the MongoDB. This user must have readWrite access to the DB.
+# The default username is miracon
+DB_USERNAME=miracon
+
+# The password used to connect to the database, with BASE64 encoding
+# The server will not start unless this is set. The default here is miracon
+DB_PASSWORD=bWlyYWNvbg==
+
+# The URL of the database to connect to.
+# The default is localhost.
+DB_URL=localhost
+
+# The port to use to connect to the database.
+# The default is the default port of MongoDB 27017
+DB_PORT=27017
+
+# The database name to use after securing a connection. The user must have readWrite access to function correctly.
+# The default is miracon.
+DB_NAME=miracon

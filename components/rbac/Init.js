@@ -7,12 +7,15 @@ const { addUsers } = require("./User");
 const { addRoles, removeRoles, getRoles } = require("./Role");
 const { removeGroups, getGroups, addGroups } = require("./Group");
 
-function InitUsers() {
+async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Initializing the user/roles database.');
 
   logEvent(LogLevel.INFO, 'Clearing out the old roles');
-  removeRoles(getRoles());
+  let oldRoles = await getRoles();
+  console.log('oldRoles init', oldRoles);
+  removeRoles(oldRoles);
+  //removeRoles(await getRoles());
 
   logEvent(LogLevel.INFO, 'Creating the default roles to align with minecraft security levels');
   const createdRoles = [
@@ -23,10 +26,10 @@ function InitUsers() {
   ];
 
   logEvent(LogLevel.INFO, 'Adding the new roles to the database');
-  const newRoles = addRoles(createdRoles);
-
+  const newRoles = await addRoles(createdRoles);
+  console.log('newRoles', newRoles);
   logEvent(LogLevel.INFO, 'Clearing out the old groups');
-  removeGroups(getGroups());
+  removeGroups(await getGroups());
 
   logEvent(LogLevel.INFO, 'Creating the new groups to align with minecraft security level');
 
@@ -64,7 +67,7 @@ function InitUsers() {
   ]
 
   logEvent(LogLevel.INFO, 'Adding the new groups');
-  const addedGroups = addGroups(createdGroups);
+  const addedGroups = await addGroups(createdGroups);
 
   const Config = getConfig();
   const minecraftPath = Config.minecraftServer.path;
@@ -80,7 +83,7 @@ function InitUsers() {
   logEvent(LogLevel.INFO, 'Creating user accounts');
 
   ops.forEach(op => {
-    if(op.name === '[Minecraft]') return; //Skip the server user
+    if (op.name === '[Minecraft]') return; //Skip the server user
     logEvent(LogLevel.DEBUG, `Creating account for user ${op.name} with level ${op.level}`);
     const user = {
       name: op.name,
@@ -112,7 +115,7 @@ function InitUsers() {
 
   createdUsers.forEach(user => {
     bcrypt.hash(user.password, 12, (err, hash) => {
-      if(err){
+      if (err) {
         logError(`Error while hashing password for user: ${user.name}! This user will not be added!`);
         logError(err);
         return;

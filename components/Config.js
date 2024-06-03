@@ -23,13 +23,20 @@ const DEFAULT_CONFIG = {
         installPath: '/opt/miracon',
         initUsers: true,
     },
+    dbConfig: {
+        dbname: 'miracon',
+        url: 'localhost',
+        port: 27017,
+        username: 'miracon',
+        password: 'bWlyYWNvbg=='
+    }
 }
 
 const Config = { ...DEFAULT_CONFIG, init: false }
 
 function getConfig() {
     if (!Config.init) {
-        throw new Error('Config was attempted to be accessed before initialization! Call the init function before calling getConfig.');
+        throw new Error('Config was attempted to be accessed before initialization. Call the init function before calling getConfig.');
     }
     return Config;
 }
@@ -49,7 +56,7 @@ function init(reload) {
     const configFile = 'config.prop';
     let configString;
 
-    try{
+    try {
         configString = readFileSync(join(configPath, configFile), 'utf-8');
     } catch (err) {
         logEvent(LogLevel.ERROR, err);
@@ -59,7 +66,7 @@ function init(reload) {
     const configData = configString.split(/[\r\n]/)
         .filter(line => line !== '')
         .filter(line => !line.startsWith('#'))
-        .map(line => line.split(/=/))
+        .map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
 
     Config.minecraftServer.path = configData.find(line => line[0] === 'MINECRAFT_SERVER_PATH')[1];
     if (!Config.minecraftServer.path || Config.minecraftServer.path === '') {
@@ -132,13 +139,47 @@ function init(reload) {
     if (Config.nodeConfig.initUsers === undefined || Number.isNaN(Config.nodeConfig.initUsers) ||
         (Config.nodeConfig.initUsers !== 0 && Config.nodeConfig.initUsers !== 1)) {
         logEvent(LogLevel.WARN, 'Received an invalid value if to initialize users, this is a fatal error! This value must either be 0(No) or 1(Yes). This must be corrected to continue!');
-        throw new Error('Invalid value for INIT_USERS! this must be either 1 to init or 0 to skip and declared in the config.');
+        throw new Error('Invalid value for INIT_USERS! This must be either 1 to init or 0 to skip and declared in the config.');
     }
 
     if (process.env.NODE_ENV === 'development' && process.env.MIRACON_INSTALL_DIRECTORY) {
         logEvent(LogLevel.DEBUG, `Using dev env variable for install path`);
         Config.nodeConfig.installPath = process.env.MIRACON_INSTALL_DIRECTORY;
         logEvent(LogLevel.DEBUG, `installDirectory=${Config.nodeConfig.installPath}`);
+    }
+
+    Config.dbConfig.username = configData.find(line => line[0] === 'DB_USERNAME')[1];
+    if (!Config.dbConfig.username || Config.dbConfig.username === '') {
+        logEvent(LogLevel.WARN, 'Received an empty value for the database username! I will assume it is miracon.');
+        Config.dbConfig.username = 'miracon';
+    }
+
+    Config.dbConfig.password = configData.find(line => line[0] === 'DB_PASSWORD')[1];
+    if (!Config.dbConfig.password || Config.dbConfig.password === '') {
+        LogError('The database server was not found! This is a fatal error and the server will not start!');
+        throw new Error('Set the database password in the config to connect!');
+    }
+    //Move the password to prevent it from being printed in the log.
+    HiddenConfig.dbConfig = { password: atob(Config.dbConfig.password) };
+    Config.dbConfig.password = '***************************';
+
+    Config.dbConfig.url = configData.find(line => line[0] === 'DB_URL')[1];
+    if (!Config.dbConfig.url || Config.dbConfig.url === '') {
+        logEvent(LogLevel.WARN, 'Received an empty value for the database url! I will assume it is localhost.');
+        Config.dbConfig.url = 'localhost';
+    }
+
+    Config.dbConfig.port = configData.find(line => line[0] === 'DB_PORT')[1];
+    if (!Config.dbConfig.port || Number.isNaN(Config.dbConfig.port) ||
+        Config.dbConfig.port > 65535 || Config.dbConfig.port < 1) {
+        logEvent(LogLevel.WARN, 'DB_PORT was not valid! Make sure it is a number within 1 to 65535 inclusive. Defaulting to 27017(MongoDB default port).')
+        Config.dbConfig.port = 27017;
+    }
+
+    Config.dbConfig.dbname = configData.find(line => line[0] === 'DB_NAME')[1];
+    if (!Config.dbConfig.dbname || Config.dbConfig.dbname === '') {
+        logEvent(LogLevel.WARN, 'Received an empty value for the database name! I will assume it is miracon.');
+        Config.dbConfig.dbname = 'localhost';
     }
 
     logEvent(LogLevel.INFO, 'Setting the log level.');
@@ -180,4 +221,4 @@ function printConfig() {
     recursePath(Config, 'Config');
 }
 
-module.exports = { getConfig, init };
+module.exports = { getConfig, init, HiddenConfig };

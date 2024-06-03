@@ -4,7 +4,7 @@ const { addGroups, resolveRoles } = require('./Group');
 const { addRoles } = require('./Role');
 const { getUsers, updateUsers } = require('./User');
 
-function InitCommands() {
+async function InitCommands() {
   logEvent(LogLevel.INFO, 'Initializing the command roles database! This will remove any existing command role relationships.');
   logEvent(LogLevel.INFO, 'Creating roles to assign to commands.');
 
@@ -24,7 +24,7 @@ function InitCommands() {
   });
 
   logEvent(LogLevel.INFO, 'Creating group for admin access to commands');
-  const newGroup = addGroups(commandAdminGroup);
+  const newGroup = await addGroups(commandAdminGroup);
 
   const checkForRole = (count = 0) => {
     const maxAttempts = 3;
@@ -40,7 +40,7 @@ function InitCommands() {
       setTimeout(() => checkForRole(count + 1), timeOutSec * 1000);
       return;
     }
-    adminUser[0].groups.push(newGroup[0].id);
+    adminUser[0]?.groups?.push(newGroup[0].id);
     logEvent(LogLevel.INFO, 'Adding command admin group to Miracon user');
     updateUsers(adminUser, adminUser);
   }
@@ -106,7 +106,6 @@ function getCommand(name, user, ){
   }
 
   const userRoles = resolveRoles(pulledUser);
-  console.log('userRoles', userRoles);
 
   if(!Array.isArray(userRoles) || userRoles.length === 0){
     logEvent(LogLevel.AUDIT, `${user.name} attempted to access command ${foundCommand.name.toUpperCase()}, but the user does not have any roles! user: ${user}`);
@@ -114,8 +113,6 @@ function getCommand(name, user, ){
   }
 
   const authorized = CheckAuthorization(userRoles, foundCommand);
-  console.log('userRoles', userRoles);
-  console.log('foundCommand', foundCommand);
   if(!authorized){
     logEvent(LogLevel.AUDIT, `${user.name} attempted to access command ${foundCommand.name.toUpperCase()}, but is not authorized! user: ${user}`);
     return { error: `user ${user.name} is not authorized to access command ${foundCommand.name.toUpperCase()}`};

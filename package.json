@@ -4,7 +4,7 @@
   "description": "Webpage to allow for common controls of minecraft server",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --runInBand --watch",
     "start": "node index.js",
     "dev": "node index.js",
     "build": "next build"
@@ -22,6 +22,7 @@
     "fs": "^0.0.1-security",
     "js": "^0.1.0",
     "memorystore": "^1.6.7",
+    "mongodb": "^6.6.2",
     "next": "^14.1.0",
     "node-fetch": "^2.7.0",
     "path": "^0.12.7",

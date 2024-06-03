@@ -1,7 +1,8 @@
-const { logEvent, LogLevel } = require("../Log");
+const { logEvent, LogLevel, logError } = require("../Log");
 const { Role, Group, User, Roles, Groups, Users } = require("./RoleDefs");
 const { v4: uuidv4 } = require("uuid");
 const { strictProperties } = require('./Utility');
+const { writeData, readData, removeData } = require("./db");
 
 /**
  * This file is used to access the Role database.
@@ -16,77 +17,37 @@ const { strictProperties } = require('./Utility');
  */
 
 /**
- * Selects which array to use for the functions as needed.
- * @param {string} type A string to select which type of array to use. Can be either Role, Group, or User.
- */
-function selectList(type) {
-    if (!type) return [];
-    if (type.toUpperCase() === 'ROLE'.toUpperCase()) {
-        return Roles;
-    } else if (type.toUpperCase() === 'GROUP'.toUpperCase()) {
-        return Groups;
-    } else if (type.toUpperCase() === 'USER'.toUpperCase()) {
-        return Users;
-    } else {
-        return undefined;
-    }
-}
-
-/**
  * Attempts to add a new object to the list. Duplicate objects (by name, case insensitive) will not be added.
  * @param {string} type A string that defines array to use. Must be either Role, Group, or User, and is case insensitive.
  * @param {Role | Group | User | Array<Role> | Array<Group> | Array<User>} object Array of property to add to the Role list.
  */
-function addObjects(type, object) {
+async function addObjects(type, object) {
 
     logEvent(LogLevel.INFO, `Attempting to add ${type.toLowerCase()}s to the master list.`);
-
-    const activeList = selectList(type);
-    const addedObjects = [];
-    if (activeList === undefined) {
-        logEvent(LogLevel.WARN, 'An invalid type was attempted to be selected while adding to an array! Here\'s what I know...');
-        logEvent(LogLevel.WARN, `type: ${type} objects: ${JSON.stringify(object)}`);
-        return [{}];
+    if (!object) {
+        logEvent(LogLevel.WARN, 'An undefined object was attempted to add to the database. Please ensure that an object with at least an id or name property is assigned.')
+        return [];
+    }
+    let upperType = type.toUpperCase();
+    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
+        logEvent(LogLevel.WARN, 'The type passed to add was not role, group, or user. It must be one of these three, and is case insensitive.');
+        return [];
     }
 
-    if (Array.isArray(object.name) && (!object.name || object.name === '')) {
-        logEvent(LogLevel.WARN, `Attempted to add ${type} with no name given! Names are rquired to add the ${type}.`);
-        logEvent(LogLevel.WARN, `Name the ${type} and try again.`);
-        return [{}];
-    }
+    const os = Array.isArray(object) ? [...object] : [object];
 
-    let objects = Array.isArray(object) ? [...object] : [object];
-    objects.forEach(obj => {
-        if (!obj.name) {
-            logEvent(LogLevel.WARN, `Attempted to add ${type} with no name given! Names are required to add the ${type}.`);
-            logEvent(LogLevel.WARN, `Name the ${type} and try again.`);
+    const addedObjects = os.map(async o => {
+        if (!o.name && !o.id) {
+            logEvent(LogLevel.WARN, 'An object was attempted to add without a name OR id. One of these must be provided to insert the record.')
             return;
         }
-        if (activeList.find(o => {
-            return o.name.toUpperCase() === obj.name.toUpperCase() || o.id === obj.id;
-        })
-        ) {
-            logEvent(LogLevel.WARN, `${type} ${JSON.stringify(obj)} already exists!`);
-        } else {
-            const temp = {};
-            Object.keys(obj).forEach(key => {
-                temp[key] = obj[key];
-            });
-            if (!temp.id) temp.id = uuidv4();
-            activeList.push(temp);
-            addedObjects.push(temp);
-
-            logEvent(LogLevel.INFO, `Successfully added ${type.toLowerCase()} with id ${temp.id}`);
-        }
+        if (!o.id) o.id = uuidv4();
+        console.log('writing o', o);
+        await writeData(type, o);
+        return o;
     });
 
-    if(addedObjects.length === 0){
-        logEvent(LogLevel.INFO, 'No objects have been added')
-        return[{}];
-        //addedObjects.push({});
-    }
-
-    return addedObjects;
+    return await Promise.all(addedObjects);
 }
 
 /**
@@ -97,43 +58,25 @@ function addObjects(type, object) {
  * @returns {Array} An array of Roles as they exist in the master list, even if Array.length === 1.
  * If no roles are found, an Array with an empty object is returned e.g. [{}]
  */
-function getObjects(type, object = undefined) {
-    logEvent(LogLevel.DEBUG, `object ${JSON.stringify(object)}`);
-    logEvent(LogLevel.INFO, `Attempting to retrieve ${type}`);
-
-    if (!Array.isArray(object) && (object && !object.name && !object.id)) {
-        logEvent(LogLevel.WARN, 'Attempted to search for an object without a name or id! At least one of these values must be provided.')
+async function getObjects(type, object = undefined) {
+    const upperType = type.toUpperCase();
+    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
+        console.log('upperType', upperType);
+        logEvent(LogLevel.WARN, 'The type passed to read was not role, group, or user. It must be one of these three, and is case insensitive.');
+        return [];
     }
 
-    const activeList = selectList(type);
-    if (activeList === undefined) {
-        logEvent(LogLevel.WARN, 'An invalid type was attempted to be selected while reading from an array! Here\'s what I know...');
-        logEvent(LogLevel.WARN, `type: ${type} objects: ${JSON.stringify(object)}`);
-        return;
+    if (object === undefined){
+        console.log('reading all data, no object', object);
+        return await readData(type);
     }
-
-    if (!object) {
-        logEvent(LogLevel.INFO, `Retrieving all ${type}`);
-        return structuredClone(activeList);
-    }
-
-    const objs = Array.isArray(object) ? [...object] : [object];
-
-    let foundObjs = [];
-    objs.forEach(obj => {
-        let foundObj = activeList.find(o => obj.name && (o.name.toUpperCase() === obj.name.toUpperCase()) || (obj.id || obj.id === 0) && o.id === obj.id);
-        if (foundObj) {
-            logEvent(LogLevel.DEBUG, `Adding ${JSON.stringify(foundObj)} to found objects.`);
-            foundObjs.push(foundObj);
-        } else {
-            logEvent(LogLevel.WARN, `The ${type} ${JSON.stringify(obj)} could not be found!`);
-        }
+    const os = Array.isArray(object) ? [...object] : [object];
+    const pulledObjects = os.map(async o => {
+        console.log('reading o', o);
+        return await readData(type, o);
     });
 
-
-    //if (foundObjs.length === 0) return [{}];
-    logEvent(LogLevel.DEBUG, `foundObjs: ${JSON.stringify(foundObjs)}`);
-    return structuredClone(foundObjs);
+    return pulledObjects;
 }
 
 /**
@@ -147,70 +90,35 @@ function getObjects(type, object = undefined) {
  * @param {Role | Group | User | Array<Role> | Array<Group> | Array<User> | undefined} newObjects The new roles to update
  * @return An Array of Roles that were updated, as they were after the update. Returns an Array with an empty object if nothing was updated.
  */
-function updateObjects(type, oldObjects, newObjects) {
-    logEvent(LogLevel.INFO, `Attempting to update ${type}`);
-    const oo = Array.isArray(oldObjects) ? [...oldObjects] : [oldObjects];
-    const no = Array.isArray(newObjects) ? [...newObjects] : [newObjects];
-
-    const activeList = selectList(type);
-    if (activeList === undefined) {
-        logEvent(LogLevel.WARN, 'An invalid type was attempted to be selected while updating an array! Here\'s what I know...');
-        logEvent(LogLevel.WARN, `type: ${type} oldObjects: ${JSON.stringify(oldObjects)} newObjects: ${newObjects}`);
+async function updateObjects(type, oldObjects, newObjects) {
+    const upperType = type.toUpperCase();
+    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
+        logEvent(LogLevel.WARN, 'The type passed to update was not role, group, or user. It must be one of these three, and is case insensitive.');
+        return [];
     }
 
-    //The following if blocks show the difference if either no is greater in length or oo
-    if (oo.length > no.length) {
-        logEvent(LogLevel.WARN, `More old ${type}s were passed than new ones! Will process all the new ${type}s with their matches.`);
-        logEvent(LogLevel.INFO, `These old ${type}s will be ignored:`);
-        for (let i = no.length; i < oo.length; i++) {
-            logEvent(LogLevel.INFO, `${JSON.stringify(oo[i])}`);
-        }
-    } else if (oo.length < no.length) {
-        logEvent(LogLevel.WARN, `More new ${type}s were passed than old ones! Will process all the old ${type}s with their matches.`);
-        logEvent(LogLevel.INFO, `These new ${type}s will be ignored:`);
-        for (let i = oo.length; i < no.length; i++) {
-            logEvent(LogLevel.INFO, `${JSON.stringify(no[i])}`);
-        }
-    } else {
-        //Placeholder, this is if both match. We don't really need to do anything here.
+    if (!oldObjects || !newObjects) {
+        logEvent(LogLevel.WARN, 'Attempted to update object, but no object was given. You must define which object to update ABD the new object to update to.');
+        return;
     }
 
-    let replacedObjs = [];
+    const os = Array.isArray(oldObjects) ? [...oldObjects] : [oldObjects];
+    const ns = Array.isArray(newObjects) ? [...newObjects] : [newObjects];
 
-    for (let i = 0; i < oo.length && i < no.length; i++) {
-        let foundObj = activeList.find(obj => oo[i].name && (obj.name.toUpperCase() === oo[i].name.toUpperCase()) || oo[i].id !== undefined && (obj.id === oo[i].id));
-        let otherFound = activeList.filter(obj => no[i].name && (obj.name.toUpperCase() === no[i].name.toUpperCase()) || no[i].id !== undefined && (obj.id === no[i].id));
-        if (foundObj && otherFound.length > 0) {
-            if (otherFound.length > 1 || otherFound[0].id !== foundObj.id) {
-                logEvent(LogLevel.WARN, `Attempted to update a ${type} to an already existing by name! Silently failing.`);
-                continue;
-            }
-        }
-        if (foundObj) {
-            const oldFound = structuredClone(foundObj);
-            if (Object.keys(no[i]).length === 1 && no[i].id !== undefined) {
-                logEvent(LogLevel.INFO, 'Ignoring strict update to id');
-                continue;
-            }
-            Object.keys(no[i]).forEach(key => {
-                if (key === 'id') {
-                    logEvent(LogLevel.DEBUG, 'Ignoring id');
-                    if (foundObj[key] !== no[i][key]) logEvent(LogLevel.DEBUG, `Attempted to change key on ${foundObj.name}!`);
-                    return;
-                }
-                foundObj[key] = no[i][key];
-            });
-            logEvent(LogLevel.INFO, `Updating ${JSON.stringify(oldFound)} to ${JSON.stringify(foundObj)}`);
-            replacedObjs.push(foundObj);
-        } else {
-            logEvent(LogLevel.WARN, `Unable to find a match to an object for an update! Here's what I know: `);
-            logEvent(LogLevel.WARN, `oldObject: ${JSON.stringify(oo[i])}`);
-        }
+    if (os.length !== ns.length) {
+        logEvent(LogLevel.WARN, 'The old objects and new objects must have an equal number passed.');
+        logEvent(LogLevel.WARN, 'The old objects will be updated to the new objects in the same order corresponding to the element in the array.');
+        return;
     }
 
-    if (replacedObjs.length === 0) return [{}];
+    const updatedObjects = os.map(async (o, index) => {
+        ns[index].id = o.id;
+        console.log('ns', ns);
+        await writeData(type, ns);
+        return ns;
+    });
 
-    return structuredClone(replacedObjs);
+    return updatedObjects;
 }
 
 /**
@@ -219,44 +127,56 @@ function updateObjects(type, oldObjects, newObjects) {
  * @param {Role | Group | User | Array<Role> | Array<Group> | Array<User> | undefined} objects The objects to remove from the master list.
  * @return The objects that were removed from the list, as they were at the time of removal.
  */
-function removeObjects(type, objects) {
+async function removeObjects(type, objects) {
+    let upperType;
     logEvent(LogLevel.INFO, `Attempting to remove ${type} from the master list`);
-
-    const activeList = selectList(type);
-    if (activeList === undefined) {
-        logEvent(LogLevel.WARN, 'An invalid type was attempted to be selected while removing from an array! Here\'s what I know...');
-        logEvent(LogLevel.WARN, `type: ${type} objects: ${JSON.stringify(objects)}`);
-        return [{}];
+    if (!objects) {
+        logEvent(LogLevel.WARN, 'There was no object passed to removeObjects.')
     }
 
-    let o = Array.isArray(objects) ? [...objects] : [objects];
-    let foundObjs = [];
-    o.forEach(obj => {
-        let oIndex = activeList.findIndex(a => obj.name && (a.name.toUpperCase() === obj.name.toUpperCase()) || (obj.id || obj.id === 0) && (a.id === obj.id));
-        if (oIndex !== -1) {
-            logEvent(LogLevel.INFO, `Removing ${type.toLowerCase()} ${JSON.stringify(activeList[oIndex])} from the master list.`);
-            foundObjs.push(activeList[oIndex]);
-            activeList.splice(oIndex, 1);
-        } else {
-            logEvent(LogLevel.WARN, `Cannot find a ${type.toLowerCase()} matching properties ${JSON.stringify(obj)}!`);
+    upperType = type.toUpperCase();
+    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
+        logEvent(LogLevel.WARN, 'The type passed to remove was not role, group, or user. It must be one of these three, and is case insensitive.');
+        return [];
+    }
+
+    let os = Array.isArray(objects) ? [...objects] : [objects];
+
+    let removedObjects = [];
+    os.forEach(async (o) => {
+        if (await removeData(type, o)) {
+            removedObjects.push(o);
         }
     });
 
-    if (foundObjs.length === 0) return [{}];
-    logEvent(LogLevel.DEBUG, `removeObjects foundObjs: ${JSON.stringify(foundObjs)}`);
-    return foundObjs;
+    return removedObjects;
+
 }
 
-function cascadeRemove(prt, prtType, otherType) {
+async function cascadeRemove(parent, parentType, otherType) {
     logEvent(LogLevel.DEBUG, 'Calling cascade removal');
 
-    const main = getObjects(prtType, prt);
-    const other = getObjects(otherType);
+    console.log('parent', parent);
+    console.log('parentType', parentType);
+
+
+    const main = await Promise.resolve(getObjects(parentType, parent));
+    const other = await Promise.resolve(getObjects(otherType));
+
+    console.log('main', main);
+    console.log('other', other);
 
     const changedOther = [];
 
-    main.forEach(m => {
-        const compRole = getObjects(prtType, strictProperties(m, Role))[0];
+    if (!Array.isArray(main) || main.length == 0 || Object.keys(main[0]).length == 0) {
+        logEvent(LogLevel.WARN, 'Database did not return any results to cascade remove.');
+        return;
+    }
+    
+    console.log('main', main);
+    main.forEach(async (m) => {
+        console.log('m', m);
+        const compRole = await getObjects(parentType, strictProperties(m, Role))[0];
         if (Object.keys(compRole).length === 0) {
             logEvent(LogLevel.WARN, `Role ${m} could not be found!`);
             return;
@@ -265,7 +185,7 @@ function cascadeRemove(prt, prtType, otherType) {
             if (!o.roles || o.roles.length === 0) return;
             let rIndex = o.roles.findIndex(or => or === compRole.id);
             if (rIndex !== -1) {
-                logEvent(LogLevel.INFO, `I found a ${otherType} ${JSON.stringify(o)} references the ${prtType}.id ${compRole.id}. I am removing it from the ${otherType}'s array.`);
+                logEvent(LogLevel.INFO, `I found a ${otherType} ${JSON.stringify(o)} references the ${parentType}.id ${compRole.id}. I am removing it from the ${otherType}'s array.`);
                 otherRoles = o.roles;
                 otherRoles = otherRoles.splice(rIndex, 1);
                 changedOther.push(o);
@@ -284,10 +204,9 @@ function cascadeRemove(prt, prtType, otherType) {
  * @param {Group | User | Array<Group> | Array<User>} check list of users/groups to check the roles of
  * @returns If the Roles for the Groups or Users are valid. If one fails, all fails. No roles are accepted.
  */
-function validateRoles(check) {
+async function validateRoles(check) {
     logEvent(LogLevel.INFO, 'Checking Roles.')
-    const rs = getObjects('role');
-
+    const rs = await getObjects('role');
     const cs = Array.isArray(check) ? [...check] : [check]
     if (check.length === 0) {
         logEvent(LogLevel.INFO, 'No roles passed, updating group/user to have no roles');
@@ -296,6 +215,7 @@ function validateRoles(check) {
     let roleCheck = false;
 
     rs.forEach(r => {
+        if (!r || !r.id) return;
         cs.forEach(c => {
             if (!c.roles || c.roles.length === 0) {
                 roleCheck = true;
@@ -324,10 +244,14 @@ function validateRoles(check) {
  * @param {User | Array<User>} check list of users to check the groups of
  * @returns If the groups for the Users are valid.
  */
-function validateGroups(check) {
+async function validateGroups(check) {
     logEvent(LogLevel.INFO, 'Checking Groups.')
-    const rs = getObjects('group');
-
+    const rs = await getObjects('group');
+    logEvent(LogLevel.DEBUG, `rs ${rs}`);
+    if (!rs || (rs.length === 1 && Object.keys(rs[0]).length)) {
+        logEvent(LogLevel.INFO, `Received an empty array from getGroups for validating groups`);
+        return;
+    }
     const cs = Array.isArray(check) ? [...check] : [check]
     let roleCheck = true;
 

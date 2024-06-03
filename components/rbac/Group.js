@@ -3,7 +3,7 @@ const { getObjects, addObjects, updateObjects, removeObjects, cascadeRemove, val
 const { Group } = require("./RoleDefs");
 const { strictProperties } = require("./Utility");
 
-function addGroups(group) {
+async function addGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to add groups.')
     let roleCheck = validateRoles(group);
 
@@ -16,12 +16,12 @@ function addGroups(group) {
     }
 }
 
-function getGroups(group) {
+async function getGroups(group) {
     logEvent(LogLevel.INFO, 'Retrieving groups from array');
-    return getObjects('group', group);
+    return await getObjects('group', group);
 }
 
-function updateGroups(oldGroup, newGroup) {
+async function updateGroups(oldGroup, newGroup) {
     logEvent(LogLevel.INFO, 'Attempting to update groups.')
     let roleCheck = validateRoles(newGroup);
 
@@ -36,13 +36,13 @@ function updateGroups(oldGroup, newGroup) {
     return [{}];
 }
 
-function removeGroups(group) {
+async function removeGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to remove groups.')
     let roleCheck = validateRoles(group);
 
     if(roleCheck){
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, removing.');
-        cascadeRemove(strictProperties(group, Group), 'group', 'user');
+        await cascadeRemove(strictProperties(group, Group), 'group', 'user');
         return removeObjects('group', strictProperties(group, Group));
     } else {
         logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
@@ -57,10 +57,9 @@ function removeGroups(group) {
  * @param {Array<User> | Array<Group>} target An array of users or groups to find the roles for
  * @return {Array<string>} A string with the role ids pulled from the target
  */
-function resolveRoles(target){
+async function resolveRoles(target){
     const pulledRoles = [];
 
-    console.log('target', target);
     const toResolve = Array.isArray(target) ? [...target] : [target]
 
     toResolve.forEach(ob => {
@@ -77,7 +76,6 @@ function resolveRoles(target){
         }
     });
 
-    console.log('pulledRoles', pulledRoles);
     return pulledRoles;
 }
 
