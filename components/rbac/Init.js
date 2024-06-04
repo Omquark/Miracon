@@ -13,7 +13,6 @@ async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Clearing out the old roles');
   let oldRoles = await getRoles();
-  console.log('oldRoles init', oldRoles);
   removeRoles(oldRoles);
   //removeRoles(await getRoles());
 
@@ -27,7 +26,6 @@ async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Adding the new roles to the database');
   const newRoles = await addRoles(createdRoles);
-  console.log('newRoles', newRoles);
   logEvent(LogLevel.INFO, 'Clearing out the old groups');
   removeGroups(await getGroups());
 

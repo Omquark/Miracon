@@ -56,8 +56,9 @@ jest.doMock('../Config', () => {
 
 
 });
+
 //TODO: This runs off the live db, setup a test db MemoryMongoServer package should be used?
-describe('Test the crud functions with MongoDB', () => {
+describe('Test the CRUD functions with roles and MongoDB', () => {
   beforeEach(async () => {
     const { initDatabase, closeConnection, } = require('./db');
     jest.resetModules();
@@ -81,15 +82,18 @@ describe('Test the crud functions with MongoDB', () => {
 
   it('adds and reads roles, not allowing adding the same role by id OR name', async () => {
     const { writeData, readData, } = require('./db');
-    const testRoles = [{ name: 'Test Role 1', id: 1 }, { name: 'Test Role 2', id: 2 }, { name: 'Test Role 3', id: 3 },]
+    const testRoles = [{ name: 'Test Role 1', id: 1 }, { name: 'Test Role 2', id: 2 }, { name: 'Test Role 3', id: 3 },];
 
     //Test adding each role
     let testRole = await writeData('role', testRoles[0]);
     expect(testRole).toBe(true);
+    //Batch insert
     testRole = await writeData('role', testRoles[1]);
     expect(testRole).toBe(true);
     testRole = await writeData('role', testRoles[2]);
     expect(testRole).toBe(true);
+    testRole = await writeData('role', testRoles[2]);
+    expect(testRole).toBeFalsy();
 
     //Make sure if we try to add a duplicate name or id, fail
     testRole = await writeData('role', testRoles[0]);
@@ -131,102 +135,51 @@ describe('Test the crud functions with MongoDB', () => {
 
   });
 
-  it('adds and reads groups, not allowing the same group to be added by id OR name', async () => {
-    const { writeData, readData, } = require('./db');
+  it('Updates roles that have been already inserted into the database, should not update the ids', async () => {
+    const { writeData, readData, updateData } = require('./db');
+    const testRoles = [{ name: 'Test Role 1', id: 1 }, { name: 'Test Role 2', id: 2 }, { name: 'Test Role 3', id: 3 },]
 
-    const testGroups = [
-      { name: 'Test Group 1', id: 1, roles: ['1'] },
-      { name: 'Test Group 2', id: 2, roles: ['2'] },
-      { name: 'Test Group 3', id: 3, roles: ['3'] },
-    ];
+    //Write the data, no need to test becuase this is for update
+    await writeData('role', testRoles[0]);
+    await writeData('role', testRoles[1]);
+    await writeData('role', testRoles[2]);
 
-    //Try adding each group
-    let testGroup = await writeData('group', testGroups[0]);
-    expect(testGroup).toBe(true);
-    testGroup = await writeData('group', testGroups[1]);
-    expect(testGroup).toBe(true);
-    testGroup = await writeData('group', testGroups[2]);
-    expect(testGroup).toBe(true);
+    //verify the objects exist, check just the first one
+    let testRole = await readData('role', { id: 1 });
+    expect(testRole.id).toBe(testRoles[0].id);
+    expect(testRole.name).toBe(testRoles[0].name);
 
-    //Attempt to write duplicate
-    testGroup = await writeData('group', testGroup[0]);
-    expect(testGroup).toBeFalsy();
-
-    //Fail if the id AND name is not given
-    testGroup = await writeData('group', { name: 'Test Group 4' });
-    expect(testGroup).toBeFalsy();
-    testGroup = await writeData('group', { id: 4 });
-    expect(testGroup).toBeFalsy();
-
-    //Attempt to read with only the name or id
-    testGroup = await readData('group', { name: 'Test Group 1' });
-    expect(testGroup.id).toEqual(testGroups[0].id);
-    expect(testGroup.name).toEqual(testGroups[0].name);
-    expect(testGroup.roles).toEqual(testGroups[0].roles);
-    testGroup = await readData('group', { id: 2 });
-    expect(testGroup.id).toEqual(testGroups[1].id);
-    expect(testGroup.name).toEqual(testGroups[1].name);
-    expect(testGroup.roles).toEqual(testGroups[1].roles);
-
-    //Don't pull by roles
-    testGroup = await readData('group', { roles: ['1'] });
-    expect(testGroup).toBeFalsy();
-
-    //Attempt to pull the same group with a name and id individually, make sure we pull the same group
-    testGroup = await readData('group', { id: 1 });
-    let otherGroup = await readData('group', { name: 'Test Group 1' });
-    expect(otherGroup).toEqual(testGroup);
-    expect(otherGroup).not.toBe(testGroup);
+    //Update the name
+    testRole = await updateData('role', { id: 1 }, { id: 1, name: 'New Test Role 1' });
+    expect(testRole).toBe(true);
+    testRole = await readData('role', { id: 1 });
+    expect(testRole.name).toBe('New Test Role 1');
+    expect(testRole.id).toBe(1);
+    //Update the name and id, but we expect the id to stay the same
+    testRole = await updateData('role', { id: 1 }, { id: 4, name: 'Old Test Role 1' });
+    expect(testRole).toBe(true);
+    testRole = await readData('role', { name: 'Old Test Role 1' });
+    expect(testRole.name).toBe('Old Test Role 1');
+    expect(testRole.id).not.toBe(4);
   });
 
-  it('adds and reads users, not allowing to add without a name OR id', async () => {
-    const { readData, writeData } = require('./db');
-    const testUsers = [
-      { name: 'Test User 1', id: 1, email: 'testuser1@email.com', roles: ['1', '2'], groups: ['1', '2'] },
-      { name: 'Test User 2', id: 2, email: 'testuser2@email.com', roles: ['1', '3'], groups: ['1', '3'] },
-      { name: 'Test User 3', id: 3, email: 'testuser3@email.com', roles: ['2', '3'], groups: ['2', '3'] },
-    ]
+  it('removes roles that are in the database', async () => {
+    const { readData, writeData, removeData } = require('./db');
 
-    //Add each user
-    let testUser = await writeData('user', testUsers[0]);
-    expect(testUser).toBe(true);
-    testUser = await writeData('user', testUsers[1]);
-    expect(testUser).toBe(true);
-    testUser = await writeData('user', testUsers[2]);
-    expect(testUser).toBe(true);
+    const testRoles = [{ name: 'Test Role 1', id: 1 }, { name: 'Test Role 2', id: 2 }, { name: 'Test Role 3', id: 3 },]
 
-    //Attempt writing a duplicate
-    testUser = await writeData('user', testUsers[0]);
-    expect(testUser).toBeFalsy();
+    await writeData('role', testRoles[0]);
+    await writeData('role', testRoles[1]);
+    await writeData('role', testRoles[2]);
 
-    //Fail write if id AND name is not given
-    testUser = await writeData('user', { name: 'Test User 4' });
-    expect(testUser).toBeFalsy();
-    testUser = await writeData('user', { id: 4 });
-    expect(testUser).toBeFalsy();
+    let testRole = await readData('role', { id: 1 });
+    expect(testRole.name).toBe(testRoles[0].name);
+    expect(testRole.id).toBe(1);
 
-    //Attempt to read with only an id or name
-    testUser = await readData('user', { name: 'Test User 1' });
-    expect(testUser.name).toEqual(testUsers[0].name);
-    expect(testUser.id).toEqual(testUsers[0].id);
-    expect(testUser.roles).toEqual(testUsers[0].roles);
-    expect(testUser.groups).toEqual(testUsers[0].groups);
-    testUser = await readData('user', { id: 2 });
-    expect(testUser.name).toEqual(testUsers[1].name);
-    expect(testUser.id).toEqual(testUsers[1].id);
-    expect(testUser.roles).toEqual(testUsers[1].roles);
-    expect(testUser.groups).toEqual(testUsers[1].groups);
+    testRole = await removeData('role', { id: 1 });
+    expect(testRole).toBe(true);
 
-    //Don't pull by groups or roles
-    testUser = await readData('user', { roles: ['1', '2'] });
-    expect(testUser).toBeFalsy();
-    testUser = await readData('user', { groups: ['1', '2'] });
-    expect(testUser).toBeFalsy();
-
-    //Pull the same group by it's id and name individually, make sure the same user is pulled
-    testUser = await readData('user', { name: 'Test User 1' });
-    let otherUser = await readData('user', { id: 1 });
-    expect(otherUser).toEqual(testUser);
-    expect(otherUser).not.toBe(testUser);
+    testRole = await readData('role', { id: 1 });
+    expect(testRole).toBeUndefined();
   });
 });

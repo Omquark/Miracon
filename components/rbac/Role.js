@@ -28,10 +28,10 @@ async function removeRoles(role) {
     logEvent(LogLevel.INFO, 'Cascade removing roles from array');
     const rs = Array.isArray(role) ? [...role] : [role];
 
-    console.log('role, cascade remove', role);
-    await cascadeRemove(strictProperties(role, Role), 'role', 'group');
-    await cascadeRemove(strictProperties(role, Role), 'role', 'user');
-
+    for (r of rs) {
+        await cascadeRemove(role.id, 'role', 'group');
+        await cascadeRemove(role.id, 'role', 'user');
+    }
     return await removeObjects('role', strictProperties(rs, Role));
 }
 

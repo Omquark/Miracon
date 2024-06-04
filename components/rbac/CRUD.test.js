@@ -5,6 +5,9 @@ jest.doMock('../Log', () => {
             //we don't need the debug messages
             if (logLevel.level > 0) console.log(`${logLevel.name} ${message}`);
         },
+        logError: (message) => {
+            console.log(`${message}`);
+        },
         LogLevel: {
             ALL: { name: 'ALL', level: -1 },
             DEBUG: { name: 'DEBUG', level: 0 },
@@ -23,77 +26,156 @@ jest.doMock('uuid', () => {
     }
 });
 
-jest.doMock('./RoleDefs', () => {
+jest.doMock('../Config', () => {
     return {
-        Role: { name: 'Role', id: 0 },
-        Group: { name: 'Group', id: 0 },
-        User: { name: 'User', id: 0 },
-        Roles: [{ name: 'Role', id: 0 }],
-        Groups: [{ name: 'Group', id: 0 }],
-        Users: [{ name: 'User', id: 0 }],
+        getConfig: () => {
+            return {
+                init: false,
+                minecraftServer: {
+                    path: '/opt/minecraft',
+                    address: 'localhost',
+                    port: '25575',
+                    password: 'cGFzc3dvcmQK' //64-bit encoded
+                },
+                log: {
+                    level: 'ALL',
+                    path: '/var/miracon',
+                    logFolder: 'log',
+                    auditFolder: 'audit',
+                },
+                nodeConfig: {
+                    port: '3010',
+                    installPath: '/opt/miracon',
+                    initUsers: true,
+                },
+                dbConfig: {
+                    dbname: 'miracon',
+                    url: 'localhost',
+                    port: 27017,
+                    username: 'miracon',
+                    password: 'miracon'
+                }
+            }
+        },
+        HiddenConfig: {
+            dbConfig: { password: 'miracon' }
+        }
     }
 });
 
-//Tests addObjects with all three arrays(Roles, Groups, and Users)
-//This does not validate foreign keys, only conflicts in name and id
-describe('Test the addObjects functions with each object, and invalid inputs as applicable', () => {
 
-    it('Console log should show invalid object with no name attempted to be added to each array', () => {
+describe('Tests for the crud functions, object ids are created at this layer, and accepts batch writes', () => {
+    beforeEach(async () => {
+        const { initDatabase, closeConnection } = require('./db');
+        jest.resetModules();
+        jest.resetAllMocks();
+
+        await initDatabase();
+        await closeConnection();
     });
 
-    it('Console log should show added object, with corresponding type, as an INFO log', () => {
+    afterEach(async () => {
+        const { closeConnection } = require('./db');
+
+        await closeConnection();
     });
 
-    it('Console should show multiple adds for each object in the passed array', () => {
+    it('tests the functions of add and get objects for roles', async () => {
+        const { addObjects, getObjects } = require('./CRUD');
+        //Verify the writes
+        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
+        let testRole = await addObjects('role', testRoles[0]);
+        expect(testRole[0]).toBeDefined();
+        console.log('testRole', testRole);
+
+        expect(testRole[0].name).toBe(testRoles[0].name);
+        expect(testRole[0].id).toBe(1);
+
+        testRole = await addObjects('role', [testRoles[1], testRoles[2]]);
+        expect(testRole.length).toBe(2);
+        expect(testRole[0].name).toBe(testRoles[1].name);
+        expect(testRole[0].id).toBe(2);
+        expect(testRole[1].name).toBe(testRoles[2].name);
+        expect(testRole[1].id).toBe(3);
+
+        //Now verify with reads, single
+        testRole = await getObjects('role', { name: 'Test Role 1' });
+        expect(Array.isArray(testRole)).toBeTruthy();
+        expect(testRole.length).toBe(1);
+        expect(testRole[0].name).toBe(testRoles[0].name);
+        expect(testRole[0].id).toBe(1);
+
+        //Multiple reads
+        testRole = await getObjects('role', [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' }]);
+        expect(testRole.length).toBe(3);
+        expect(testRole[0].name).toBe(testRoles[0].name);
+        expect(testRole[0].id).toBe(1);
+        expect(testRole[1].name).toBe(testRoles[1].name);
+        expect(testRole[1].id).toBe(2);
+        expect(testRole[2].name).toBe(testRoles[2].name);
+        expect(testRole[2].id).toBe(3);
+
+        //Get all the roles
+        testRole = await getObjects('role');
+        expect(testRole.length).toBe(3);
+        expect(testRole[0].name).toBe(testRoles[0].name);
+        expect(testRole[0].id).toBe(1);
+        expect(testRole[1].name).toBe(testRoles[1].name);
+        expect(testRole[1].id).toBe(2);
+        expect(testRole[2].name).toBe(testRoles[2].name);
+        expect(testRole[2].id).toBe(3);
+
+        testRole = await getObjects('role', { name: 'Test Role 4' })
+        expect(testRole.length).toBe(1);
     });
 
-    it('Console should show object already exists on the second addition', () => {
+    if ('tests the function of update object with roles', async () => {
+        const { getObjects, addObjects, updateObjects } = require('./CRUD');
+        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
+
+        await addObjects('role', testRoles);
+        let testRole = await getObjects('role');
+
+        expect(testRole.length).toBe(3);
+        expect(testRole[0]).toBeDefined();
+        expect(testRole[1]).toBeDefined();
+        expect(testRole[2]).toBeDefined();
+
+        await updateObjects('role', testRoles[0], { name: 'New Role 1' });
+        await updateObjects('role',
+            [{ name: testRoles[1].name }, { name: testRole[2].name }],
+            [{ name: 'New Role 2' }, { name: 'New Role 3' }]
+        );
+
+        testRole = await getObjects('role');
+        expect(testRole.length).toBe(3);
+        expect(testRole[0].name).toBe('New Role 1');
+        expect(testRole[1].name).toBe('New Role 2');
+        expect(testRole[2].name).toBe('New Role 3');
     });
 
-    it('Console should show object already exists with both adds, due to name and id.', () => {
-    });
-});
+    it('tests the function of remove objects with roles', async () => {
+        const { getObjects, addObjects, removeObjects } = require('./CRUD');
+        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
 
-//Objects here will use the objects added in the previous test.
-describe('Test the getObjects functions with each object, and invalid inputs as applicable', () => {
+        await addObjects('role', testRoles);
+        let testRole = await getObjects('role');
 
+        expect(testRole.length).toBe(3);
+        expect(testRole[0]).toBeDefined();
+        expect(testRole[1]).toBeDefined();
+        expect(testRole[2]).toBeDefined();
 
-    test('Should show all objects from each table, and verify a deep copy', () => {
-    });
+        testRole = await removeObjects('role', testRoles[0]);
+        expect(testRole.length).toBe(1);
+        expect(testRole[0].name).toBe('Test Role 1');
+        testRole = await removeObjects('role', [testRoles[1], testRoles[2]]);
+        expect(testRole.length).toBe(2);
+        expect(testRole[0].name).toBe('Test Role 2');
+        expect(testRole[1].name).toBe('Test Role 3');
 
-    test('Test getObjects to pull against ids, and verify we get a deep copy', () => {
-    });
-});
+        testRole = await getObjects('role');
 
-describe('Test the updateObjects function with each object and invalid inputs as applicable', () => {
-
-    it('updateObjects single object with each array, should log the updated object', () => {
-    });
-
-    it('updateObjects with object array to each array, should log each updated object.', () => {
-    });
-
-    it('updateObjects with old objects larger than the new, should log each updated and skipped objects.', () => {
-    });
-
-    it('updateObjects with new objects larger than the old, should log each updated and skipped objects.', () => {
-    });
-
-    it('updateObject to add a new field to any given object in an array, should show updated object in the log.', () => {
-    });
-
-    it('updateObject to add a new field to any multiple objects in an array, should show updated object in the log.', () => {
-    });
-
-    it('updateObject to attempt to add a new field without a name or id, should log a warning and the object', () => {
-    });
-
-});
-
-describe('Test the removeObjects function with each object and invalid inputs as applicable', () => {
-    it('removeObjects single object with each array, should log the updated object', () => {
-    });
-
-    it('updateObjects multiple objects with each array, should log the updated object', () => {
+        expect(testRole.length).toBe(0);
     });
 });

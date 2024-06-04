@@ -55,12 +55,12 @@ async function createIndexes() {
 
   logEvent(LogLevel.INFO, 'Checking indexes for the database. This will create collections if they do not exist.');
 
-  for(const key of Object.keys(INDEXES)){
-    for(const index of INDEXES[key]){
+  for (const key of Object.keys(INDEXES)) {
+    for (const index of INDEXES[key]) {
       const collection = await getCollection(key);
       let insertIndex = {};
       insertIndex[index] = 1;
-      await collection.createIndex(insertIndex, { unique: true, name: `index_${index}_1`});
+      await collection.createIndex(insertIndex, { unique: true, name: `index_${index}_1` });
     }
   }
 }
@@ -78,22 +78,20 @@ async function writeData(type, object) {
   targetCollection = await getCollection(type);
   if (!targetCollection) {
     logEvent(LogLevel.WARN, 'Could not pull the collection to write. Check the type is correct and should be role, group, or user');
-    return;
+    return false;
   }
   if (!object) {
     logEvent(LogLevel.WARN, 'The object must be defined in order to write to the database.');
-    return;
+    return false;
   }
 
   if (!object.id || !object.name) {
-    console.log('object failed: ', object, 'type', type);
     logEvent(LogLevel.WARN, 'Attempted to write an object, but the data does not contain an id AND name. Both of these must be defined.');
-    return;
+    return false;
   }
 
   try {
     let result = await targetCollection.insertOne(object);
-    console.log(result);
     if (result.acknowledged === true) return true;
   } catch (err) {
     logError(err);
@@ -125,12 +123,10 @@ async function readData(type, object = undefined) {
   }
   if (!object) {
     logEvent(LogLevel.INFO, 'No object was passed to read, getting all records.');
-    documents = await targetCollection.find().toArray();
-    returnedDocuments = documents.map(document => document.newObject)
+    returnedDocuments = await targetCollection.find().toArray();
     return returnedDocuments;
   }
   if (!object.id && !object.name) {
-    console.log('object read failed', object, 'type', type);
     logEvent(LogLevel.WARN, 'An object was passed, but did not have the name OR id defined, so there\'s no info to search for')
     return;
   }
@@ -141,6 +137,7 @@ async function readData(type, object = undefined) {
   let foundObj;
   try {
     foundObj = await targetCollection.findOne(searchObject);
+    if (foundObj === null) foundObj = undefined;
   } catch (err) {
     logError(err);
     return undefined;
@@ -175,14 +172,14 @@ async function updateData(type, oldObject, newObject) {
 
   let updatedObject = {};
   let targetObject = {};
-  if (target.id) targetObject.id = oldObject.id;
+  if (oldObject.id) targetObject.id = oldObject.id;
   if (oldObject.name) targetObject.name = oldObject.name;
   Object.keys(newObject).forEach(key => {
     if (key === 'id') return; //Don't update the id
     updatedObject[key] = newObject[key];
   });
   try {
-    let result = targetCollection.updateOne(targetObject, updatedObject, { upsert: false });
+    let result = await targetCollection.updateOne(targetObject, { $set: updatedObject }, { upsert: false });
     if (result.modifiedCount > 0) return true;
   } catch (err) {
     logError(err);
@@ -196,7 +193,6 @@ async function removeData(type, object) {
   let targetCollection;
   logEvent(LogLevel.INFO, 'Attempting to remove data to the MongoDB database.');
   await checkConnection();
-
   targetCollection = await getCollection(type);
   if (!targetCollection) {
     logEvent(LogLevel.WARN, 'Could not pull the collection to remove an item. The type must either be role, group, user and is case insensitive.');
@@ -231,7 +227,7 @@ async function initDatabase() {
 
   await checkConnection();
   const tables = ['users', 'groups', 'roles']
-  for(tableName of tables){
+  for (tableName of tables) {
     await client.db().dropCollection(tableName);
     await client.db().createCollection(tableName);
   }
@@ -259,6 +255,10 @@ async function checkConnection() {
 async function getCollection(type) {
   let targetCollection;
   await checkConnection();
+  if (!type) {
+    logEvent(LogLevel.WARN, 'No type was passed to the collection! It must be either role, group, or user and is case insensitive.');
+    return undefined;
+  }
   switch (type.toUpperCase()) {
     case ('ROLE' || 'ROLES'): {
       targetCollection = await client.db().collection("roles");

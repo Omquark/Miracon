@@ -92,7 +92,6 @@ nextApp.prepare().then(() => {
     app.post('/roles', bodyParserJson, (req, res) => {
         const rawBody = req.body;
 
-        console.log('rawBody', rawBody)
         const newRoles = [];
         let updated;
 

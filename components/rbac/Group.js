@@ -5,7 +5,7 @@ const { strictProperties } = require("./Utility");
 
 async function addGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to add groups.')
-    let roleCheck = validateRoles(group);
+    let roleCheck = await validateRoles(group);
 
     if(roleCheck){
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
@@ -14,6 +14,8 @@ async function addGroups(group) {
         logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
         logEvent(LogLevel.INFO, 'No Groups have been added.');
     }
+
+    return[];
 }
 
 async function getGroups(group) {
@@ -23,7 +25,7 @@ async function getGroups(group) {
 
 async function updateGroups(oldGroup, newGroup) {
     logEvent(LogLevel.INFO, 'Attempting to update groups.')
-    let roleCheck = validateRoles(newGroup);
+    let roleCheck = await validateRoles(newGroup);
 
     if(roleCheck){
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
@@ -33,7 +35,7 @@ async function updateGroups(oldGroup, newGroup) {
         logEvent(LogLevel.INFO, 'No Groups have been updated.');
     };
     
-    return [{}];
+    return [];
 }
 
 async function removeGroups(group) {
@@ -42,14 +44,14 @@ async function removeGroups(group) {
 
     if(roleCheck){
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, removing.');
-        await cascadeRemove(strictProperties(group, Group), 'group', 'user');
+        await cascadeRemove(group.id, 'group', 'user');
         return removeObjects('group', strictProperties(group, Group));
     } else {
         logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
         logEvent(LogLevel.INFO, 'No Groups have been removed.');
     }
 
-    return [{}];
+    return [];
 }
 
 /**
