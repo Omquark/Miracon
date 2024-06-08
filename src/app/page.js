@@ -36,8 +36,6 @@ export default function Home() {
       return;
     }
 
-    console.log(userInfo.roles);
-
     sessionStorage.setItem('username', userInfo.name);
     sessionStorage.setItem('useremail', userInfo.email);
     sessionStorage.setItem('roles', userInfo.roles);
@@ -50,7 +48,7 @@ export default function Home() {
   const roles = ['Role 1', 'Role 2', 'Role 3', 'Role 4', 'Role 5',];
 
   return (
-    <div className={`text-center `}>
+    <div className={`text-center mt-14 `}>
       <form>
       <div className='mx-auto w-1/6'>
         <TextBox type='text' placeholder='Username' id='username' />
@@ -65,13 +63,6 @@ export default function Home() {
           <></>
       }
       </form>
-      <div className='w-1/6 text-center mx-auto '>
-        <Selection
-          className=''
-          placeholder='placeholder'
-          id='test-select'
-          values={roles} />
-      </div>
     </div>
   )
 }

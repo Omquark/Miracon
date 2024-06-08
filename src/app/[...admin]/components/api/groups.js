@@ -12,7 +12,6 @@ export async function pullGroups(dispatch){
                 'content-type': 'application/json',
             },
             method: 'GET',
-            mode: 'cors',
         });
 
         data = await response.json();
@@ -21,8 +20,6 @@ export async function pullGroups(dispatch){
         console.log(err);
         data = { error: 'Failed to access /groups on GET!' }
     }
-
-    //console.log('data', data);
 
     dispatch({ type: groupsActionTypes.REFRESH_GROUP, payload: data });
 }

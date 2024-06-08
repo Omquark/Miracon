@@ -15,7 +15,6 @@ export default function UserPreferences(props){
   const prefRef = useRef(prefs);
 
   const setUserPrefs = (userPrefs) => {
-    console.log('userPrefs', userPrefs);
     setPrefs(userPrefs);
   }
 

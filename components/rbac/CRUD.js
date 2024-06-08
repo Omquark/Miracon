@@ -1,7 +1,6 @@
-const { logEvent, LogLevel, logError } = require("../Log");
+const { logEvent, LogLevel } = require("../Log");
 const { Role, Group, User, Roles, Groups, Users } = require("./RoleDefs");
 const { v4: uuidv4 } = require("uuid");
-const { strictProperties } = require('./Utility');
 const { writeData, readData, removeData, updateData } = require("./db");
 
 /**
@@ -29,12 +28,6 @@ async function addObjects(type, object) {
         logEvent(LogLevel.WARN, 'An undefined object was attempted to add to the database. Please ensure that an object with at least an id or name property is assigned.')
         return [];
     }
-    let upperType = type.toUpperCase();
-    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
-        logEvent(LogLevel.WARN, 'The type passed to add was not role, group, or user. It must be one of these three, and is case insensitive.');
-        return [];
-    }
-
     const os = Array.isArray(object) ? [...object] : [object];
 
     const addedObjects = os.map(async o => {
@@ -61,12 +54,6 @@ async function addObjects(type, object) {
  * The returned array will always be of the same size as the object(s) passed. Any objects not found will be undefined within the array
  */
 async function getObjects(type, object = undefined) {
-    const upperType = type.toUpperCase();
-    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
-        logEvent(LogLevel.WARN, 'The type passed to read was not role, group, or user. It must be one of these three, and is case insensitive.');
-        return [];
-    }
-
     if (object === undefined) {
         logEvent(LogLevel.INFO, `No object passed, retrieving all ${type}s.`)
         return await readData(type);
@@ -91,12 +78,6 @@ async function getObjects(type, object = undefined) {
  * @return An Array of Roles that were updated, as they were after the update. Returns an Array with an empty object if nothing was updated.
  */
 async function updateObjects(type, oldObjects, newObjects) {
-    const upperType = type.toUpperCase();
-    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
-        logEvent(LogLevel.WARN, 'The type passed to update was not role, group, or user. It must be one of these three, and is case insensitive.');
-        return [];
-    }
-
     if (!oldObjects || !newObjects) {
         logEvent(LogLevel.WARN, 'Attempted to update object, but no object was given. You must define which object to update ABD the new object to update to.');
         return [];
@@ -126,17 +107,10 @@ async function updateObjects(type, oldObjects, newObjects) {
  * @return The objects that were removed from the list, as they were at the time of removal.
  */
 async function removeObjects(type, objects) {
-    let upperType;
     logEvent(LogLevel.INFO, `Attempting to remove ${type} from the master list`);
     let removedObjects = [];
     if (!objects) {
         logEvent(LogLevel.WARN, 'There was no object passed to removeObjects.')
-        return [];
-    }
-
-    upperType = type.toUpperCase();
-    if (upperType !== "ROLE" && upperType !== "GROUP" && upperType !== "USER") {
-        logEvent(LogLevel.WARN, 'The type passed to remove was not role, group, or user. It must be one of these three, and is case insensitive.');
         return [];
     }
 
@@ -186,17 +160,20 @@ async function cascadeRemove(member, memberType, containerType) {
  */
 async function validateRoles(check) {
     logEvent(LogLevel.INFO, 'Checking Roles.')
+    logEvent(LogLevel.DEBUG, `check from validateRoles: ${JSON.stringify(check)}`);
     const rs = await getObjects('role');
     const cs = Array.isArray(check) ? [...check] : [check]
     if (check.length === 0) {
-        logEvent(LogLevel.INFO, 'No roles passed, updating group/user to have no roles');
+        logEvent(LogLevel.INFO, 'No roles passed, updating object to have no roles');
         return true;
     }
     let roleCheck = false;
 
     rs.forEach(r => {
         if (!r || !r.id) return;
+        logEvent(LogLevel.DEBUG, `cs from check, validateRoles: ${JSON.stringify(cs)}`);
         cs.forEach(c => {
+            if(!c) return;
             if (!c.roles || c.roles.length === 0) {
                 roleCheck = true;
                 return;
@@ -205,14 +182,14 @@ async function validateRoles(check) {
                 return gr === r.id;
             });
             if (foundRole) {
-                logEvent(LogLevel.DEBUG, `A role was found for the group/user: ${JSON.stringify(c)}`);
+                logEvent(LogLevel.DEBUG, `A role was found for the object: ${JSON.stringify(c)}`);
                 roleCheck = true;
             }
         });
     });
 
     if (!roleCheck) {
-        logEvent(LogLevel.WARN, `A role cannot be found for the group/user: ${JSON.stringify(check)}`);
+        logEvent(LogLevel.WARN, `A role cannot be found for the object: ${JSON.stringify(check)}`);
     }
 
     return roleCheck;
@@ -226,8 +203,9 @@ async function validateRoles(check) {
  */
 async function validateGroups(check) {
     logEvent(LogLevel.INFO, 'Checking Groups.')
+    logEvent(LogLevel.DEBUG, `check from validateGroups: ${JSON.stringify(check)}`);
     const rs = await getObjects('group');
-    logEvent(LogLevel.DEBUG, `rs ${rs}`);
+    logEvent(LogLevel.DEBUG, `rs from validate groups: ${JSON.stringify(rs)}`);
     if (!rs || (rs.length === 1 && Object.keys(rs[0]).length)) {
         logEvent(LogLevel.INFO, `Received an empty array from getGroups for validating groups`);
         return;
@@ -236,8 +214,9 @@ async function validateGroups(check) {
     let roleCheck = true;
 
     rs.forEach(r => {
+        logEvent(LogLevel.DEBUG, `cs from check, validateGroups: ${JSON.stringify(cs)}`);
         cs.forEach(c => {
-            if (!c.roles || c.roles.length === 0) {
+            if (!c || !c.roles || c.roles.length === 0) {
                 return;
             }
             const foundRole = c.roles.find(gr => gr === r.name);

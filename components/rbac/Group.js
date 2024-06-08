@@ -7,7 +7,7 @@ async function addGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to add groups.')
     let roleCheck = await validateRoles(group);
 
-    if(roleCheck){
+    if (roleCheck) {
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
         return addObjects('group', strictProperties(group, Group));
     } else {
@@ -15,7 +15,7 @@ async function addGroups(group) {
         logEvent(LogLevel.INFO, 'No Groups have been added.');
     }
 
-    return[];
+    return [];
 }
 
 async function getGroups(group) {
@@ -27,31 +27,21 @@ async function updateGroups(oldGroup, newGroup) {
     logEvent(LogLevel.INFO, 'Attempting to update groups.')
     let roleCheck = await validateRoles(newGroup);
 
-    if(roleCheck){
+    if (roleCheck) {
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
         return updateObjects('group', strictProperties(oldGroup, Group), strictProperties(newGroup, Group));
     } else {
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while trying to update a group. You must add the role first, or remove it from the group.');
         logEvent(LogLevel.INFO, 'No Groups have been updated.');
     };
-    
+
     return [];
 }
 
 async function removeGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to remove groups.')
-    let roleCheck = validateRoles(group);
-
-    if(roleCheck){
-        logEvent(LogLevel.INFO, 'Was able to validate all group roles, removing.');
-        await cascadeRemove(group.id, 'group', 'user');
-        return removeObjects('group', strictProperties(group, Group));
-    } else {
-        logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
-        logEvent(LogLevel.INFO, 'No Groups have been removed.');
-    }
-
-    return [];
+    await cascadeRemove(group.id, 'group', 'user');
+    return removeObjects('group', strictProperties(group, Group));
 }
 
 /**
@@ -59,24 +49,24 @@ async function removeGroups(group) {
  * @param {Array<User> | Array<Group>} target An array of users or groups to find the roles for
  * @return {Array<string>} A string with the role ids pulled from the target
  */
-async function resolveRoles(target){
+async function resolveRoles(target) {
     const pulledRoles = [];
 
     const toResolve = Array.isArray(target) ? [...target] : [target]
 
-    toResolve.forEach(ob => {
-        if(ob.roles && Array.isArray(ob.roles) && ob.roles.length > 0){
+    for (ob of toResolve) {
+        if (ob.roles && Array.isArray(ob.roles) && ob.roles.length > 0) {
             ob.roles.forEach(role => pulledRoles.push(role));
         }
-        if(ob.groups && Array.isArray(ob.groups) && ob.groups.length > 0){
-            ob.groups.forEach(group => {
-                const pulledGroup = getGroups({ id: group });
-                pulledGroup[0].roles.forEach(role => {
+        if (ob.groups && Array.isArray(ob.groups) && ob.groups.length > 0) {
+            for (group of ob.groups) {
+                const pulledGroup = await getGroups({ id: group });
+                pulledGroup[0]?.roles?.forEach(role => {
                     pulledRoles.push(role);
                 })
-            });
+            }
         }
-    });
+    }
 
     return pulledRoles;
 }

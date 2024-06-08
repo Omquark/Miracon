@@ -17,9 +17,11 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
-    const pulledUsers = getUsers({ name: userInfo.username });
+    const pulledUsers = await getUsers({ name: userInfo.username });
+    logEvent(LogLevel.DEBUG, `userInfo from login: ${JSON.stringify(userInfo)}`);
+    logEvent(LogLevel.DEBUG, `pulleUser info: ${JSON.stringify(pulledUsers[0])}`);
 
-    if (pulledUsers.length === 0) {
+    if (pulledUsers.length === 0 || !pulledUsers[0]) {
         logEvent(LogLevel.DEBUG, `Unable to find user with username ${userInfo.username}`);
         return { error: 'The username or password was not valid!' };
     }
@@ -33,8 +35,15 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
-    const resolvedRoles = resolveRoles(pulledUsers[0]).map(role => getRoles({ id: role })[0].name);
-
+    // const resolvedRoles = (await resolveRoles(pulledUsers[0])).map(role => getRoles({ id: role })[0].name);
+    const resolvedRoles = [];
+    const userRoles = await resolveRoles(pulledUsers[0]);
+    for (roleID of userRoles) {
+        logEvent(LogLevel.DEBUG, `roleID: ${roleID}`);
+        const role = await getRoles({ id: roleID });
+        const roleName = role[0].name;
+        resolvedRoles.push(roleName);
+    }
     sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,

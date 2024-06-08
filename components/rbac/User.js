@@ -15,8 +15,8 @@ const { strictProperties } = require("./Utility");
  */
 async function addUsers(user) {
     logEvent(LogLevel.INFO, 'Attempting to add users.');
-    let roleCheck = validateRoles(user);
-    let groupCheck = validateGroups(user);
+    let roleCheck = await validateRoles(user);
+    let groupCheck = await validateGroups(user);
 
     if(!roleCheck){
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while adding a User. You must add the role first, or remove it from the User.');

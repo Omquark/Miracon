@@ -19,7 +19,6 @@ async function login(userInfo) {
     }
 
     const data = await response.json();
-    console.log(data);
     return data;
 }
 

@@ -2,7 +2,7 @@
 
 import Sidebar from "./components/sidebar/Sidebar";
 import { usePathname } from "next/navigation";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Role from "./components/roles";
 import Group from "./components/groups";
 import User from "./components/users";
@@ -12,11 +12,13 @@ import Whitelist from "./components/whitelist";
 import AdminRoles from "./components/context/admin/roles";
 import AdminGroups from "./components/context/admin/groups";
 import AdminUsers from "./components/context/admin/users";
+import { UserPrefContext } from "../layout";
 
 export const UserRolesContext = createContext();
 
 export default function Admin() {
 
+    const { prefs, setPrefs } = useContext(UserPrefContext);
     const [activePage, setActivePage] = useState("");
     const [userRoles, setUserRoles] = useState(['']);
     const pathname = usePathname();
@@ -48,7 +50,7 @@ export default function Admin() {
                 <div className='h-screen flex-shrink-1'>
                     <Sidebar />
                 </div>
-                <div className='w-screen'>
+                <div className={`duration-300 w-screen mt-14 ${prefs.sidebarOpen ? 'ml-64' : '' }`}>
                     {adminPageSelector()}
                 </div>
             </UserRolesContext.Provider>

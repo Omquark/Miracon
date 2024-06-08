@@ -4,16 +4,18 @@ const { readFileSync } = require("fs");
 const bcrypt = require("bcrypt");
 const { logEvent, LogLevel, logError } = require("../Log");
 const { addUsers } = require("./User");
-const { addRoles, removeRoles, getRoles } = require("./Role");
-const { removeGroups, getGroups, addGroups } = require("./Group");
+const { addRoles, getRoles } = require("./Role");
+const { addGroups } = require("./Group");
+const { initDatabase } = require("./db");
 
 async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Initializing the user/roles database.');
+  await initDatabase();
 
-  logEvent(LogLevel.INFO, 'Clearing out the old roles');
-  let oldRoles = await getRoles();
-  removeRoles(oldRoles);
+  // logEvent(LogLevel.INFO, 'Clearing out the old roles');
+  // let oldRoles = await getRoles();
+  // removeRoles(oldRoles);
   //removeRoles(await getRoles());
 
   logEvent(LogLevel.INFO, 'Creating the default roles to align with minecraft security levels');
@@ -25,9 +27,11 @@ async function InitUsers() {
   ];
 
   logEvent(LogLevel.INFO, 'Adding the new roles to the database');
-  const newRoles = await addRoles(createdRoles);
+  await addRoles(createdRoles);
+  const newRoles = await getRoles(createdRoles);
+
   logEvent(LogLevel.INFO, 'Clearing out the old groups');
-  removeGroups(await getGroups());
+  // await removeGroups(await getGroups());
 
   logEvent(LogLevel.INFO, 'Creating the new groups to align with minecraft security level');
 
@@ -86,7 +90,7 @@ async function InitUsers() {
     const user = {
       name: op.name,
       password: 'Mi1n3e&Cr4\\tf$', //Plain text, we call the hash function later, which will do the adding.
-      email: '',
+      email: `${op.name}@miracon.com`,
       preferences: {},
       roles: [],
       groups: [addedGroups.find(group => group.name.includes(op.level)).id],
@@ -94,12 +98,14 @@ async function InitUsers() {
       active: false,
       changePassword: true,
     }
+    logEvent(LogLevel.DEBUG, `Adding ${user.name} to created users list`);
     createdUsers.push(user);
   });
 
   const defaultAdmin = { //Default admin to assign roles, can be deactivated later
     name: 'Miracon',
     password: 'Mi1n3e&Cr4\\tf$',
+    email: 'miracon@miracon.com',
     preferences: {},
     roles: [],
     groups: [addedGroups.find(group => group.name === ('Level 4')).id],
@@ -111,19 +117,19 @@ async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Hashing passwords');
 
-  createdUsers.forEach(user => {
-    bcrypt.hash(user.password, 12, (err, hash) => {
-      if (err) {
-        logError(`Error while hashing password for user: ${user.name}! This user will not be added!`);
-        logError(err);
-        return;
-      }
-      user.password = hash;
-      logEvent(LogLevel.INFO, `Adding user ${user.name}`);
-      addUsers(user);
-    })
-  });
 
+  for (user of createdUsers) {
+    try {
+      logEvent(LogLevel.DEBUG, `Hashing password for ${user.name}`);
+      user.password = bcrypt.hashSync(user.password, 14);
+      await addUsers(user);
+    }
+    catch (err) {
+      logError(`Unable to add the user ${user.name}`)
+    }
+  }
+
+  logEvent(LogLevel.WARN, `Created default users, and admins based on the ops.json`);
   logEvent(LogLevel.WARN, 'Users, groups, and roles have been created to align with the security level used by minecraft.');
   logEvent(LogLevel.WARN, 'All users have the same password and will be required to change at the next login.');
   logEvent(LogLevel.WARN, 'This will also force them to update any other information not provided by the ops.json such as email');

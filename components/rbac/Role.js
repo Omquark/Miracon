@@ -28,9 +28,11 @@ async function removeRoles(role) {
     logEvent(LogLevel.INFO, 'Cascade removing roles from array');
     const rs = Array.isArray(role) ? [...role] : [role];
 
+    //TODO: This will not validate blacklisted roles for commands, leaving invalid references possible
     for (r of rs) {
         await cascadeRemove(role.id, 'role', 'group');
         await cascadeRemove(role.id, 'role', 'user');
+        await cascadeRemove(role.id, 'role', 'command');
     }
     return await removeObjects('role', strictProperties(rs, Role));
 }

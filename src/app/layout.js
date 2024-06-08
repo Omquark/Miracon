@@ -30,16 +30,19 @@ export default function RootLayout({ children }) {
   }, [prefs]);
 
   return (
-    <UserPrefContext.Provider value ={{ prefs: prefs, setPrefs: setUserPrefs }}>
-    <html className={`${prefs.darkMode ? 'dark' : ''}`} lang="en">
-      <head className=''>
-      </head>
+    <UserPrefContext.Provider value={{ prefs: prefs, setPrefs: setUserPrefs }}>
+      <html className={`${prefs.darkMode ? 'dark' : ''}`} lang="en">
+        <head className='min-h-screen'>
+        </head>
         <body
-          className='bg-white dark:bg-black text-base text-slate-700 dark:text-slate-300'>
+          className={'bg-white dark:bg-black text-base text-slate-700 dark:text-slate-300 '
+          }>
           <Header />
-          {children}
+          <div className={``}>
+            {children}
+          </div>
         </body>
-    </html>
+      </html>
     </UserPrefContext.Provider>
   )
 }

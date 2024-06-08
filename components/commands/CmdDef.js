@@ -1,5 +1,16 @@
 //Default, reaquired commands. These commands are required by Miracon for basic access and cannot be removed.
-//Changint thie data can result in Miracon not working as aexpected
+//Changing this data can result in Miracon not working as aexpected
+
+const Command = 
+{
+  "name": "DEFAULT_COMMAND",
+  "description": "Allows the user to create roles ONLY.",
+  "roles": [],
+  "blacklistRoles": ["ALL"],
+  "requirePassword": false,
+  "enabled": true,
+  "id": "role id"
+}
 
 const Commands = [
   {
@@ -8,7 +19,7 @@ const Commands = [
     "roles": [],
     "blacklistRoles": [],
     "requirePassword": false,
-    "enabled": true
+    "enabled": true,
   },
   {
     "name": "READ_ROLE",
@@ -267,4 +278,4 @@ const Commands = [
     "enabled": true}
 ]
 
-module.exports = { Commands }
+module.exports = { Commands, Command }

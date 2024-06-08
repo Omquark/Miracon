@@ -19,8 +19,6 @@ export default function Sidebar() {
         //let rolesString;
         let roles;
 
-        console.log('userRoles', userRoles);
-
         //rolesString = typeof window !== 'undefined' ? sessionStorage.getItem('roles') : undefined;
         roles = userRoles; //rolesString ? rolesString.split(',') : undefined;
 
@@ -79,17 +77,17 @@ export default function Sidebar() {
 
     return (
         <nav id='admin-sidebar'
-            className={'duration-300 h-full z-[5] ' +
+            className={'fixed duration-300 h-full z-[1] mt-14 ' +
                 'text-start text-sm border-cyan-700 dark:border-cyan-300 ' +
                 `${prefs.sidebarOpen ? 'w-64 px-2 border-r-4 ' : ' w-0 px-0 border-r-0 '}`}>
 
-            <div className='relative h-full '>
+            <div className='relative h-full text-nowrap ' >
                 <div className={`overflow-hidden ${prefs.sidebarOpen ? '' : ''}`} >
                     {userMgt && Array.isArray(userMgt) && userMgt.length > 0 ? <SidebarItem menuName={userMgt[0]} subMenus={userMgt.slice(1)} /> : <></>}
                     {whiteBanMgt && Array.isArray(whiteBanMgt) && whiteBanMgt.length > 0 ? <SidebarItem menuName={whiteBanMgt[0]} subMenus={whiteBanMgt.slice(1)} /> : <></>}
                     {serverMgt && Array.isArray(serverMgt) ? <SidebarItem menuName={'Server configuration'} /> : <></>}
                 </div>
-                <div className='absolute text-xl right-0 top-1/2'>
+                <div className='absolute text-xl right-0 top-1/2 '>
                     <button
                         className={
                             'dark border-2 bg-white dark:bg-black border-cyan-700 dark:border-cyan-300 p-1 rounded-full ' +

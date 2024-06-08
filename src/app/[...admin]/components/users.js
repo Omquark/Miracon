@@ -139,8 +139,6 @@ export default function User() {
         const newRoles = adminRoles.filter(adminRole => {
             let match = false;
             roleNames.forEach(roleName => {
-                console.log('roleName', roleName);
-                console.log('adminRole', adminRole);
                 if (roleName === adminRole.name) {
                     match = true;
                 }
@@ -148,8 +146,6 @@ export default function User() {
             return match;
         })
             .map(adminRole => adminRole.id);
-
-        console.log('newRoles', newRoles);
 
         changingUser.roles = newRoles;
 
@@ -186,7 +182,7 @@ export default function User() {
                 setShow={setModalShown}
                 header={`User: ${modalHeader}`}
                 footer={footerButtons}
-                static={false} >
+                static={true} >
                 {modalMessage}
             </Modal>
             <table className='table-fixed border border-collapse w-full'>

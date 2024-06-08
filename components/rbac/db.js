@@ -52,6 +52,7 @@ async function createIndexes() {
   INDEXES.role = ['name', 'id'];
   INDEXES.group = ['name', 'id'];
   INDEXES.user = ['name', 'id', 'email'];
+  INDEXES.command = ['name', 'id'];
 
   logEvent(LogLevel.INFO, 'Checking indexes for the database. This will create collections if they do not exist.');
 
@@ -226,7 +227,7 @@ async function removeData(type, object) {
 async function initDatabase() {
 
   await checkConnection();
-  const tables = ['users', 'groups', 'roles']
+  const tables = ['users', 'groups', 'roles', 'commands']
   for (tableName of tables) {
     await client.db().dropCollection(tableName);
     await client.db().createCollection(tableName);
@@ -270,6 +271,10 @@ async function getCollection(type) {
     }
     case ('USER' || 'USERS'): {
       targetCollection = await client.db().collection("users");
+      return targetCollection;
+    }
+    case ('COMMAND' || 'COMMANDS'): {
+      targetCollection = await client.db().collection("commands");
       return targetCollection;
     }
     default: {

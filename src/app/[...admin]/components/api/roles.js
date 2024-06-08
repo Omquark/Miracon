@@ -12,7 +12,6 @@ export async function pullRoles(dispatch){
                 'content-type': 'application/json',
             },
             method: 'GET',
-            mode: 'cors',
         });
 
         data = await response.json();

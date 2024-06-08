@@ -12,7 +12,6 @@ export async function pullUsers(dispatch){
                 'content-type': 'application/json',
             },
             method: 'GET',
-            mode: 'cors',
         });
 
         data = await response.json();

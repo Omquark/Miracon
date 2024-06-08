@@ -64,6 +64,7 @@ export default function Role() {
         saveButton.disabled = true;
 
         changingRole.name = document.getElementById('RoleName').value;
+        console.log('changingRole', changingRole);
 
         dispatchAdminRoles({ type: rolesActionTypes.UPDATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
 
@@ -164,7 +165,7 @@ export default function Role() {
                                         </tr>
                                     )
                                 })
-                            : <>{console.log('adminRoles', adminRoles)}</>//adminRroles && Array.isArray(Roles) ? 
+                            : <></>//adminRroles && Array.isArray(Roles) ? 
                     }
                 </tbody>
             </table>

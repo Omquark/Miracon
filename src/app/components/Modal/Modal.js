@@ -20,7 +20,7 @@ export default function Modal(props) {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
                 if (isStatic) {
                     modalRef.current.classList.add(['scale-[105%]']);
-                    setTimeout(() => { modalRef.current.classList.remove(['scale-[105%]']) }, 100);
+                    setTimeout(() => { modalRef?.current.classList.remove(['scale-[105%]']) }, 100);
                 }
                 else {
                     setShow(false);
@@ -41,7 +41,7 @@ export default function Modal(props) {
     return (
         <div
             className={
-                `absolute left-0 w-lvw h-lvh z-[2000] duration-300 bg-slate-700 ` +
+                `fixed left-0 w-lvw h-lvh duration-300 bg-slate-700 z-[45] ` +
                 `bg-opacity-40 overscroll-contain ` +
                 `${show ? '' : 'hidden'}`
             }
@@ -49,27 +49,35 @@ export default function Modal(props) {
             role='dialog' >
 
             <div className={
-                'fixed duration-75 inset-x-1/4 inset-y-1/4 z-15 bg-white dark:bg-black ' +
-                'border-4 w-1/2 h-1/2 rounded-3xl ' +
+                'fixed duration-75 bg-white dark:bg-black z-50 ' +
+                'sm:border-4 sm:rounded-3xl ' +
+                'sm:inset-y-1/4 xl:inset-y-1/3 ' +
+                'h-screen sm:h-1/2 xl:h-1/3 ' +
+                'sm:inset-x-1/4 ' +
+                'w-screen sm:w-1/2 ' +
                 'border-cyan-700 dark:border-cyan-300 ' +
                 ' '
             } ref={modalRef}>
                 {/*Header*/}
                 <div className={
+                    ' ' +
                     'border-b-2 h-1/6 flex flex-wrap w-full mx-auto text-2xl font-bold ' +
-                    'border-cyan-700 dark:border-cyan-300 '
+                    'border-cyan-700 dark:border-cyan-300 overflow-hidden '
                 }>
-                    <span className='my-auto w-full '>{header}</span>
+                    <span className='my-auto w-full'>{header}</span>
                 </div>
                 {/*Body*/}
-                <div className='flex-wrap h-2/3 w-3/4 flex mx-auto px-4 overflow-y-scroll '>
+                <div className={
+                    'h-2/3 flex md:mx-auto overflow-y-scroll ' +
+                    'px-2 md:px-4 lg:px-8 '
+                }>
                     <div className='w-full my-auto '>
                         {children}
                     </div>
                 </div>
                 {/*Footer*/}
                 <div className={
-                    'border-t-2 h-1/6 flex flex-wrap ' +
+                    'border-t-2 h-1/6 flex flex-wrap z-40 ' +
                     'border-cyan-700 dark:border-cyan-300 '
                 }>
                     <div className='my-auto mx-auto flex '>

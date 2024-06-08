@@ -48,7 +48,7 @@ export default function Selection(props) {
 
     return (
         <div
-            className='relative w-full py-1 mt-3 '
+            className='relative w-full py-1 lg:mt-3 '
             id={id}>
             <div className={
                 'duration-300 border-2 rounded-xl bg-white dark:bg-black ' +
@@ -76,8 +76,8 @@ export default function Selection(props) {
                 //expanded ?
                 <div
                     className={
-                        'absolute text-left border-2 rounded-xl overflow-hidden w-full z-10 ' +
-                        'border-cyan-700 dark:border-cyan-300 ' +
+                        'absolute text-left border-2 rounded-xl overflow-y-scroll w-full z-10 ' +
+                        'border-cyan-700 dark:border-cyan-300 max-h-48 ' +
                         `${expanded ? '' : 'hidden'}`
                     }
                     ref={dropdownRef} >

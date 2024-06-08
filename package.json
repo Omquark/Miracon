@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --runInBand ",
-    "start": "node index.js",
+    "start": "node index.js > miracon.log 2>&1",
     "dev": "node index.js",
     "build": "next build"
   },
@@ -19,6 +19,7 @@
     "date-fns": "^2.30.0",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "express-validator": "^7.1.0",
     "fs": "^0.0.1-security",
     "js": "^0.1.0",
     "memorystore": "^1.6.7",
