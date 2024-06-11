@@ -51,8 +51,8 @@ export default function Modal(props) {
             <div className={
                 'fixed duration-75 bg-white dark:bg-black z-50 ' +
                 'sm:border-4 sm:rounded-3xl ' +
-                'sm:inset-y-1/4 xl:inset-y-1/3 ' +
-                'h-screen sm:h-1/2 xl:h-1/3 ' +
+                'sm:inset-y-1/4 ' +
+                'h-screen sm:h-1/2 ' +
                 'sm:inset-x-1/4 ' +
                 'w-screen sm:w-1/2 ' +
                 'border-cyan-700 dark:border-cyan-300 ' +

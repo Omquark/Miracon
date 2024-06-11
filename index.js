@@ -19,6 +19,7 @@ const { InitUsers } = require('./components/rbac/Init');
 const { InitCommands, getCommand } = require('./components/commands/Commands');
 const path = require('path');
 const { access, constants } = require('fs');
+const { getCommands } = require('./components/rbac/Command');
 
 nextApp.prepare().then(async () => {
 
@@ -56,7 +57,7 @@ nextApp.prepare().then(async () => {
         res.redirect('/');
     });
 
-    app.use(/\/roles|\/groups|\/users|\/admin/, async (req, res, next) => {
+    app.use(/\/roles|\/groups|\/users|\/admin|\/commands/, async (req, res, next) => {
         const userInfo = req.session.userInfo;
 
         if (!userInfo) {
@@ -77,6 +78,17 @@ nextApp.prepare().then(async () => {
             return;
         }
         next();
+    });
+
+    app.get('/commands', async (req, res) => {
+        const foundCmd = await getCommand('READ_COMMAND', req.session.userInfo);
+
+        if (foundCmd.error) {
+            logEvent(LogLevel.WARN, 'There was an error attempting to read the commands!');
+            res.status(403).send({ error: foundCmd.error });
+            return;
+        }
+        res.status(200).send(JSON.stringify(await getCommands()));
     });
 
     app.get('/roles', async (req, res) => {

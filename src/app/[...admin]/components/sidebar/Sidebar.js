@@ -3,24 +3,21 @@
 import { useContext, useEffect, useState } from "react";
 import { SidebarItem } from "./Sidebaritem";
 import { BsChevronDoubleLeft } from "react-icons/bs"
-import { UserPrefContext } from "@/app/layout";
-import { UserRolesContext } from "../../page";
+import { UserInfoContext, UserPrefContext } from "@/app/layout";
 
 export default function Sidebar() {
 
     const { prefs, setPrefs } = useContext(UserPrefContext);
-    const { userRoles } = useContext(UserRolesContext);
+    const { userInfo, setUserInfo } = useContext(UserInfoContext);
 
     const [userMgt, setUserMgt] = useState([]);
     const [whiteBanMgt, setWhiteBanMgt] = useState([]);
     const [serverMgt, setServerMgt] = useState(false);
 
     useEffect(() => {
-        //let rolesString;
         let roles;
 
-        //rolesString = typeof window !== 'undefined' ? sessionStorage.getItem('roles') : undefined;
-        roles = userRoles; //rolesString ? rolesString.split(',') : undefined;
+        roles = userInfo?.roles;
 
         const umgt = [];
         const wmgt = [];
@@ -40,6 +37,11 @@ export default function Sidebar() {
                     case ('READ_USER'): {
                         if (!umgt.find(mgt => mgt === 'Users')) {
                             umgt.push('Users');
+                        }
+                    }
+                    case('READ_COMMAND'): {
+                        if(!umgt.find(mgt => mgt === 'Commands')) {
+                            umgt.push('Commands')
                         }
                     }
                     case ('READ_WHITELIST'): {
@@ -69,7 +71,7 @@ export default function Sidebar() {
             setUserMgt(umgt);
             setWhiteBanMgt(wmgt);
         }
-    }, [userRoles]);
+    }, [userInfo]);
 
     const expand = () => {
         setPrefs({ ...prefs, sidebarOpen: !prefs.sidebarOpen });

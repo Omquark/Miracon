@@ -47,7 +47,6 @@ export async function saveRoles(roles, dispatch, action){
                 'content-type': 'application/json',
             },
             method: 'POST',
-            mode: 'cors',
         });
 
         data = await response.json();

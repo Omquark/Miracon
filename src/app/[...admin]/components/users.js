@@ -6,6 +6,7 @@ import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
 import Selection from '@/app/components/Selection/Selection';
+import CheckBox from '@/app/components/CheckBox/CheckBox';
 import { AdminUsersContext, usersActionTypes } from './context/admin/users';
 import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
@@ -84,7 +85,7 @@ export default function User() {
                     type='text'
                     placeholder='Email'
                     id='UserEmail'
-                    value='UserEmail'
+                    value={user.email}
                 />
                 <Selection
                     className=''
@@ -97,6 +98,11 @@ export default function User() {
                     placeholder='Groups'
                     id='UserGroups'
                     values={selectedGroups}
+                />
+                <CheckBox
+                    className=''
+                    id='TestCheck'
+                    placeholder='Checkbox Label'
                 />
             </form>
         )

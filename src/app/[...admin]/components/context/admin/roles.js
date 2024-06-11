@@ -30,6 +30,7 @@ export const rolesActionTypes = {
  * @returns The new state to be used
  */
 function rolesReducer(state, action) {
+  console.log(action);
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
     case (rolesActionTypes.ADD_ROLE): {
@@ -44,7 +45,6 @@ function rolesReducer(state, action) {
     //Updates a single role
     case (rolesActionTypes.UPDATE_ROLE): {
       // COMMENT: action object = { type: "UPDATE_ROLE", payload: { newRole }, context: context for THIS reducer function}
-      console.log(action.payload);
       saveRoles(action.payload, action.context, action.type.toUpperCase());
       const newRole = state.find(role => role.id === action.payload.id);
       newRole.name = action.payload.name;

@@ -20,7 +20,7 @@ export default function TextBox(props) {
             <input
                 className={
                     'static duration-300 w-full ' +
-                    'bg-white dark:bg-black disabled:bg-neutral-400 dark:disabled:bg-neutral-600 rounded-xl px-2 py-1 mt-3 ' +
+                    'bg-white dark:bg-black disabled:bg-neutral-200 dark:disabled:bg-neutral-600 rounded-xl px-2 py-1 mt-3 ' +
                     'border-2 border-cyan-700 dark:border-cyan-300 ' +
                     'focus:border-blue-700 focus:dark:border-blue-300 ' +
                     'peer ' + className

@@ -1,7 +1,7 @@
 'use client'
 
 import { logout } from "@/app/api/login";
-import { UserPrefContext } from "@/app/layout";
+import { UserInfoContext, UserPrefContext } from "@/app/layout";
 import { useContext, useEffect, useState } from "react";
 import { FaRegMoon, FaRegSun } from "react-icons/fa";
 import { IoLogOutOutline } from 'react-icons/io5'
@@ -9,14 +9,16 @@ import { IoLogOutOutline } from 'react-icons/io5'
 export default function Header() {
 
     const { prefs, setPrefs } = useContext(UserPrefContext);
+    const { userInfo, setUserInfo } = useContext(UserInfoContext);
     const [username, setUsername] = useState('');
 
     useEffect(() => {
-        // setUsername(sessionStorage.getItem('username'));
-    }, []);
+        setUsername(userInfo.username);
+    }, [userInfo.username]);
 
     const handleLogout = () => {
         logout();
+        setUserInfo({ username: '', userEmail: '', userRoles: ['', ''] });
         window.location.href = '/';
     }
 
@@ -33,7 +35,7 @@ export default function Header() {
                 </div>
                 <div className='my-auto flex-grow text-center'>
                     <span>
-                        Welcome, {'User'}
+                        Welcome, {username ? username : 'please login'}
                     </span>
                 </div>
                 <div className='my-auto flex-shrink duration-300 flex'>

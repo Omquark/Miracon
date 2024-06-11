@@ -38,7 +38,6 @@ export async function saveUsers(users, dispatch){
                 'content-type': 'application/json',
             },
             method: 'POST',
-            mode: 'cors',
         });
 
         data = await response.json();

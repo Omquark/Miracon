@@ -36,7 +36,6 @@ export async function saveGroups(groups, dispatch){
                 'content-type': 'application/json',
             },
             method: 'POST',
-            mode: 'cors',
         });
 
         data = await response.json();

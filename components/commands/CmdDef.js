@@ -275,7 +275,40 @@ const Commands = [
     "roles": [],
     "blacklistRoles": [],
     "requirePassword": false,
-    "enabled": true}
+    "enabled": true
+  },
+  {
+    "name": "READ_COMMAND",
+    "description": "Allows the user to read commands.",
+    "roles": [],
+    "blacklistRoles": [],
+    "requirePassword": false,
+    "enabled": true
+  },
+  {
+    "name": "WRITE_COMMAND",
+    "description": "Allows the user to write a command. This does not require the read commands role, but is difficult to do without it.",
+    "roles": [],
+    "blacklistRoles": [],
+    "requirePassword": false,
+    "enabled": true
+  },
+  {
+    "name": "UPDATE_COMMAND",
+    "description": "Allows the user to make updates to commands.",
+    "roles": [],
+    "blacklistRoles": [],
+    "requirePassword": false,
+    "enabled": true
+  },
+  {
+    "name": "REMOVE_COMMAND",
+    "description": "Allows the user to remove commands.",
+    "roles": [],
+    "blacklistRoles": [],
+    "requirePassword": false,
+    "enabled": true
+  },
 ]
 
 module.exports = { Commands, Command }

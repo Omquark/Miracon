@@ -2,10 +2,10 @@
 
 import TextBox from './components/TextBox/TextBox'
 import Button from './components/Button/Button'
-import Selection from './components/Selection/Selection';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from './api/login';
+import CheckBox from './components/CheckBox/CheckBox';
 
 export default function Home() {
 
@@ -50,18 +50,18 @@ export default function Home() {
   return (
     <div className={`text-center mt-14 `}>
       <form>
-      <div className='mx-auto w-1/6'>
-        <TextBox type='text' placeholder='Username' id='username' />
-      </div>
-      <div className='mx-auto w-1/6'>
-        <TextBox type='password' placeholder='Password' id='password' />
-      </div>
-      <Button onClick={attemptLogin} id='login-button' enabled={loggingIn} type='submit'>{loggingIn ? 'Logging in' : 'Login'}</Button>
-      {
-        loginError.erred ?
-          <span className='text-red-600' >{loginError.message}</span> :
-          <></>
-      }
+        <div className='mx-auto w-1/6'>
+          <TextBox type='text' placeholder='Username' id='username' />
+        </div>
+        <div className='mx-auto w-1/6'>
+          <TextBox type='password' placeholder='Password' id='password' />
+        </div>
+        <Button onClick={attemptLogin} id='login-button' enabled={loggingIn} type='submit'>{loggingIn ? 'Logging in' : 'Login'}</Button>
+        {
+          loginError.erred ?
+            <span className='text-red-600' >{loginError.message}</span> :
+            <></>
+        }
       </form>
     </div>
   )
