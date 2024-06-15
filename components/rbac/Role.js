@@ -9,29 +9,32 @@ const { strictProperties } = require('./Utility');
  * @return An array of new elements with only the name and id properties
  */
 
-function addRoles(role) {
+async function addRoles(role) {
     logEvent(LogLevel.INFO, `Attempting to add role ${JSON.stringify(role)} to array.`);
-    return addObjects('role', strictProperties(role, Role));
+    return await addObjects('role', strictProperties(role, Role));
 }
 
-function getRoles(role) {
+async function getRoles(role) {
     logEvent(LogLevel.INFO, 'Retrieving roles from array');
-    return getObjects('role', role);
+    return await getObjects('role', role);
 }
 
-function updateRoles(oldRoles, newRoles) {
+async function updateRoles(oldRoles, newRoles) {
     logEvent(LogLevel.INFO, 'attempting to update roles in array');
-    return updateObjects('role', strictProperties(oldRoles, Role), strictProperties(newRoles, Role));
+    return await updateObjects('role', strictProperties(oldRoles, Role), strictProperties(newRoles, Role));
 }
 
-function removeRoles(role) {
+async function removeRoles(role) {
     logEvent(LogLevel.INFO, 'Cascade removing roles from array');
     const rs = Array.isArray(role) ? [...role] : [role];
 
-    cascadeRemove(strictProperties(role, Role), 'role', 'group');
-    cascadeRemove(strictProperties(role, Role), 'role', 'user');
-
-    return removeObjects('role', strictProperties(rs, Role));
+    //TODO: This will not validate blacklisted roles for commands, leaving invalid references possible
+    for (r of rs) {
+        await cascadeRemove(role.id, 'role', 'group');
+        await cascadeRemove(role.id, 'role', 'user');
+        await cascadeRemove(role.id, 'role', 'command');
+    }
+    return await removeObjects('role', strictProperties(rs, Role));
 }
 
 module.exports = { addRoles, getRoles, updateRoles, removeRoles }

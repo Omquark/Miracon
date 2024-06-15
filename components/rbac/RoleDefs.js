@@ -53,9 +53,10 @@ const User = {
     changePassword: true,
 }
 
-const Roles = [Role, otherRole];
-const Groups = [Group];
-const Users = [User];
+// const Roles = [Role, otherRole];
+// const Groups = [Group];
+// const Users = [User];
 
 
-module.exports = { Role, Group, User, Roles, Groups, Users };
+// module.exports = { Role, Group, User, Roles, Groups, Users };
+module.exports = { Role, Group, User };

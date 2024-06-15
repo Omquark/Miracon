@@ -1,23 +1,32 @@
 const bcrypt = require('bcrypt')
 
 const { logEvent, LogLevel } = require("../Log");
-const { getUsers } = require("../rbac/User");
-const { getGroups } = require("../rbac/Group");
+const { getUsers, updateUsers } = require("../rbac/User");
+const { resolveRoles } = require("../rbac/Group");
+const { getRoles } = require('../rbac/Role');
 
+/**
+ * Checkes the userInfo against the User db to confirm username and password.
+ * @param {Object} userInfo containse username and password used to check against the user DB
+ * @returns Either an error message to pass to the front end or user sessionInfo object, which is 
+ * username, email, user roles, resolved from roles and groups the user belongs to
+ */
 async function checkAndLoginUser(userInfo) {
     if (!userInfo.username || !userInfo.password) {
-        logEvent(LogLevel.DEBUG, 'Attempted to login without sa username or password');
+        logEvent(LogLevel.DEBUG, 'Attempted to login without as username or password');
         return { error: 'The username or password was not valid!' };
     }
 
-    const pulledUsers = getUsers({ name: userInfo.username });
+    const pulledUsers = await getUsers({ name: userInfo.username });
+    logEvent(LogLevel.DEBUG, `userInfo from login: ${JSON.stringify(userInfo)}`);
+    logEvent(LogLevel.DEBUG, `pulleUser info: ${JSON.stringify(pulledUsers[0])}`);
 
-    if (Object.keys(pulledUsers[0]).length === 0) {
+    if (pulledUsers.length === 0 || !pulledUsers[0]) {
         logEvent(LogLevel.DEBUG, `Unable to find user with username ${userInfo.username}`);
         return { error: 'The username or password was not valid!' };
     }
 
-    let password = bytesFromBase64(new TextEncoder().encode(userInfo.password));
+    let password = bytesFromBase64(userInfo.password);
 
     const verified = await bcrypt.compare(password, pulledUsers[0].password);
 
@@ -27,29 +36,37 @@ async function checkAndLoginUser(userInfo) {
     }
 
     const resolvedRoles = [];
-
-    if (pulledUsers[0].roles) {
-        pulledUsers[0].roles.forEach(role => {
-            resolvedRoles.push(role);
-        });
-    }
-
-    if (pulledUsers[0].groups) {
-        pulledUsers[0].groups.forEach(group => {
-            const pulledGroup = getGroups({ id: group });
-            pulledGroup[0].roles.forEach(role => {
-                resolvedRoles.push(role);
-            });
-        });
+    const userRoles = await resolveRoles(pulledUsers[0]);
+    for (roleID of userRoles) {
+        logEvent(LogLevel.DEBUG, `roleID: ${roleID}`);
+        const role = await getRoles({ id: roleID });
+        const roleName = role[0].name;
+        resolvedRoles.push(roleName);
     }
 
     sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
         roles: resolvedRoles,
+        changePassword: pulledUsers[0].changePassword,
     }
 
     return sessionInfo;
+}
+
+async function updatePassword(userinfo) {
+    const user = (await getUsers({ name: userinfo.username }))[0];
+    if (!user) {
+        return { error: 'User could not be found to update password!' }
+    }
+    let passwordMatch = await bcrypt.compare(userinfo.oldPassword, user.password);
+    if (!passwordMatch) {
+        return { error: 'Old password does not match!' }
+    }
+
+    let newPassword = await bcrypt.hash(userinfo.newPassword, 14);
+    await updateUsers(user, { ...user, password: newPassword, changePassword: false });
+    return { message: 'Password updated' };
 }
 
 function bytesToBase64(bytes) {
@@ -58,8 +75,9 @@ function bytesToBase64(bytes) {
 }
 
 function bytesFromBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
+    const string = new TextEncoder().encode(bytes);
+    const binString = String.fromCodePoint(...string);
     return atob(binString);
 }
 
-module.exports = { checkAndLoginUser }
+module.exports = { checkAndLoginUser, updatePassword, bytesFromBase64, bytesToBase64 }

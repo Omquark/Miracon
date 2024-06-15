@@ -13,10 +13,10 @@ const { strictProperties } = require("./Utility");
  * @param {User | Array<User>} users Users that are attempted to be added.
  * @returns AN set of objects that were added to the array
  */
-function addUsers(user) {
+async function addUsers(user) {
     logEvent(LogLevel.INFO, 'Attempting to add users.');
-    let roleCheck = validateRoles(user);
-    let groupCheck = validateGroups(user);
+    let roleCheck = await validateRoles(user);
+    let groupCheck = await validateGroups(user);
 
     if(!roleCheck){
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while adding a User. You must add the role first, or remove it from the User.');
@@ -30,12 +30,12 @@ function addUsers(user) {
     return addObjects('user', strictProperties(user, User));
 }
 
-function getUsers(user){
+async function getUsers(user){
     const pulledUser = getObjects('user', user);
     return pulledUser;
 }
 
-function updateUsers(oldUser, newUser){
+async function updateUsers(oldUser, newUser){
     logEvent(LogLevel.INFO, 'Attempting to add users.');
     let roleCheck = validateRoles(newUser);
     let groupCheck = validateGroups(newUser);
@@ -54,7 +54,7 @@ function updateUsers(oldUser, newUser){
     return updateObjects('user', strictProperties(oldUser, User), strictProperties(newUser, User));
 }
 
-function removeUsers(user){
+async function removeUsers(user){
     return removeObjects('user', user);
 }
 

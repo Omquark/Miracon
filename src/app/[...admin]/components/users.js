@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useRef } from 'react';
 import { pullUsers, saveUsers } from './api/users';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
 import Selection from '@/app/components/Selection/Selection';
-import { AdminUsersContext, usersActionTypes } from './context/roles/users';
-import { AdminRolesContext, rolesActionTypes } from './context/roles/roles';
-import { AdminGroupsContext, groupsActionTypes } from './context/roles/groups';
+import CheckBox from '@/app/components/CheckBox/CheckBox';
+import { AdminUsersContext, usersActionTypes } from './context/admin/users';
+import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
+import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
 
 //TODO: Need to be able to write user changes. Use form to detect changes and send only what's needed.
 
@@ -22,10 +23,15 @@ export default function User() {
     const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
+    const isInitialRender = useRef(true);
+
     useEffect(() => {
-        dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
-        dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
-        dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
+        if (isInitialRender.current) {
+            dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
+            dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
+            dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
+            isInitialRender.current = false;
+        }
     }, []);
 
     const showUserModal = async (user) => {
@@ -84,7 +90,7 @@ export default function User() {
                     type='text'
                     placeholder='Email'
                     id='UserEmail'
-                    value='UserEmail'
+                    value={user.email}
                 />
                 <Selection
                     className=''
@@ -97,6 +103,11 @@ export default function User() {
                     placeholder='Groups'
                     id='UserGroups'
                     values={selectedGroups}
+                />
+                <CheckBox
+                    className=''
+                    id='TestCheck'
+                    placeholder='Checkbox Label'
                 />
             </form>
         )
@@ -139,8 +150,6 @@ export default function User() {
         const newRoles = adminRoles.filter(adminRole => {
             let match = false;
             roleNames.forEach(roleName => {
-                console.log('roleName', roleName);
-                console.log('adminRole', adminRole);
                 if (roleName === adminRole.name) {
                     match = true;
                 }
@@ -148,8 +157,6 @@ export default function User() {
             return match;
         })
             .map(adminRole => adminRole.id);
-
-        console.log('newRoles', newRoles);
 
         changingUser.roles = newRoles;
 
@@ -186,7 +193,7 @@ export default function User() {
                 setShow={setModalShown}
                 header={`User: ${modalHeader}`}
                 footer={footerButtons}
-                static={false} >
+                static={true} >
                 {modalMessage}
             </Modal>
             <table className='table-fixed border border-collapse w-full'>

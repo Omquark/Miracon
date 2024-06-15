@@ -3,7 +3,6 @@
 import { createContext, useReducer, useContext, useEffect } from "react"
 import { pullGroups, saveGroups } from "../../api/groups";
 import { AdminRolesContext, rolesActionTypes } from "./roles";
-import { pullRoles } from "../../api/roles";
 
 const initialGroupsState = [{ name: '', id: '' }]
 

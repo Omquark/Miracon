@@ -1,4 +1,4 @@
-import { IoMdArrowDropdown } from 'react-icons/io'
+import { IoMdArrowDropdown } from 'react-icons/io';
 import { useEffect, useRef, useState } from "react";
 
 export default function Selection(props) {
@@ -48,23 +48,26 @@ export default function Selection(props) {
 
     return (
         <div
-            className='relative w-full py-1 mt-3 '
+            className={'relative w-full my-2 lg:my-3 '}
             id={id}>
             <div className={
-                'duration-300 border-2 rounded-xl bg-white dark:bg-black ' +
-                'border-cyan-700 dark:border-cyan-300 ' +
+                'duration-300 bg-white dark:bg-black ' + 
+                //'duration-300 border-2 rounded-xl bg-white dark:bg-black ' +
+                //'border-cyan-700 dark:border-cyan-300 ' +
                 className
             }>
                 <input
                     className={
-                        'w-[98%] ps-2 my-1 bg-white dark:bg-black '
+                        'w-full bg-white dark:bg-black border-2 rounded-xl ' +
+                        'border-cyan-700 dark:border-cyan-300 h-9 '
                     }
                     disabled
-                    value={placeholder} />
+                    value={placeholder}
+                    onClick={() => expand()} />
                 <button
                     className={
                         'duration-300 ' +
-                        'absolute text-3xl transform -translate-x-6 translate-y-0.5 ' +
+                        'absolute text-3xl transform -translate-x-8 translate-y-1 ' +
                         `${expanded ? '' : 'rotate-90 '}`
                     }
                     onClick={() => expand()}
@@ -76,8 +79,8 @@ export default function Selection(props) {
                 //expanded ?
                 <div
                     className={
-                        'absolute text-left border-2 rounded-xl overflow-hidden w-full z-10 ' +
-                        'border-cyan-700 dark:border-cyan-300 ' +
+                        'absolute text-left border-2 rounded-xl overflow-y-scroll w-full z-10 ' +
+                        'border-cyan-700 dark:border-cyan-300 max-h-48 ' +
                         `${expanded ? '' : 'hidden'}`
                     }
                     ref={dropdownRef} >

@@ -3,53 +3,72 @@ const { getObjects, addObjects, updateObjects, removeObjects, cascadeRemove, val
 const { Group } = require("./RoleDefs");
 const { strictProperties } = require("./Utility");
 
-function addGroups(group) {
+async function addGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to add groups.')
-    let roleCheck = validateRoles(group);
+    let roleCheck = await validateRoles(group);
 
-    if(roleCheck){
+    if (roleCheck) {
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
         return addObjects('group', strictProperties(group, Group));
     } else {
         logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
         logEvent(LogLevel.INFO, 'No Groups have been added.');
     }
+
+    return [];
 }
 
-function getGroups(group) {
+async function getGroups(group) {
     logEvent(LogLevel.INFO, 'Retrieving groups from array');
-    return getObjects('group', group);
+    return await getObjects('group', group);
 }
 
-function updateGroups(oldGroup, newGroup) {
+async function updateGroups(oldGroup, newGroup) {
     logEvent(LogLevel.INFO, 'Attempting to update groups.')
-    let roleCheck = validateRoles(newGroup);
+    let roleCheck = await validateRoles(newGroup);
 
-    if(roleCheck){
+    if (roleCheck) {
         logEvent(LogLevel.INFO, 'Was able to validate all group roles, adding.');
         return updateObjects('group', strictProperties(oldGroup, Group), strictProperties(newGroup, Group));
     } else {
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while trying to update a group. You must add the role first, or remove it from the group.');
         logEvent(LogLevel.INFO, 'No Groups have been updated.');
     };
-    
-    return [{}];
+
+    return [];
 }
 
-function removeGroups(group) {
+async function removeGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to remove groups.')
-    let roleCheck = validateRoles(group);
+    await cascadeRemove(group.id, 'group', 'user');
+    return removeObjects('group', strictProperties(group, Group));
+}
 
-    if(roleCheck){
-        logEvent(LogLevel.INFO, 'Was able to validate all group roles, removing.');
-        cascadeRemove(strictProperties(group, Group), 'group', 'user');
-        return removeObjects('group', strictProperties(group, Group));
-    } else {
-        logEvent(LogLevel.INFO, 'There was a role that could not be validated. You must add the role first, or remove it from the group.');
-        logEvent(LogLevel.INFO, 'No Groups have been removed.');
+/**
+ * Takes an Array of Users or Groups and returns the roles contained by each
+ * @param {Array<User> | Array<Group>} target An array of users or groups to find the roles for
+ * @return {Array<string>} A string with the role ids pulled from the target
+ */
+async function resolveRoles(target) {
+    const pulledRoles = [];
+
+    const toResolve = Array.isArray(target) ? [...target] : [target]
+
+    for (ob of toResolve) {
+        if (ob.roles && Array.isArray(ob.roles) && ob.roles.length > 0) {
+            ob.roles.forEach(role => pulledRoles.push(role));
+        }
+        if (ob.groups && Array.isArray(ob.groups) && ob.groups.length > 0) {
+            for (group of ob.groups) {
+                const pulledGroup = await getGroups({ id: group });
+                pulledGroup[0]?.roles?.forEach(role => {
+                    pulledRoles.push(role);
+                })
+            }
+        }
     }
 
-    return [{}];
+    return pulledRoles;
 }
 
-module.exports = { addGroups, getGroups, updateGroups, removeGroups }
+module.exports = { addGroups, getGroups, updateGroups, removeGroups, resolveRoles }

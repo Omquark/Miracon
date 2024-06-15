@@ -26,7 +26,7 @@ class RConnection {
         }
         ({
             password: this.password = 'password',
-            serverAddress: this.serverAddress = 'localhost',
+            serverAddress: this.serverAddress = 'minecraft',
             serverPort: this.serverPort = 25575
         } = options);
 
@@ -52,7 +52,7 @@ class RConnection {
             port: this.serverPort
         });
 
-        this.socket.once('connect', () => {
+        this.socket.on('connect', () => {
             logEvent(LogLevel.INFO, `Connected to ${this.socket.remoteAddress}:${this.socket.remotePort}`);
             try {
                 this.socket.write(this.payload);
@@ -60,9 +60,10 @@ class RConnection {
                 logError(err);
             }
         })
-            .once('data', (data) => { //Check if we connected
+            .on('data', (data) => { //Check if we connected
                 let response = destructPacket(data);
-                logEvent(LogLevel.DEBUG, `response from RCON login: ${data.buffer}`);
+                console.log('response from RCON', response);
+                logEvent(LogLevel.DEBUG, `response from RCON login: ${JSON.stringify(data.buffer)}`);
             })
             .on('error', (err) => { //Failed!
                 logError(err);
@@ -87,7 +88,7 @@ class RConnection {
         const MessageHandler = (data) => {
             let response;
             response = destructPacket(data);
-            logEvent(LogLevel.DEBUG, `data from command: ${response}`);
+            logEvent(LogLevel.DEBUG, `data from command: ${JSON.stringify(response)}`);
         }
 
         this.payload = structPacket({

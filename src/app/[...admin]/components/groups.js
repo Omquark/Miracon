@@ -6,8 +6,8 @@ import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
 import Selection from '@/app/components/Selection/Selection';
-import { AdminGroupsContext, groupsActionTypes } from './context/roles/groups';
-import { AdminRolesContext, rolesActionTypes } from './context/roles/roles';
+import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
+import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 
 export default function Group() {
 
@@ -40,7 +40,7 @@ export default function Group() {
 
         const message = (
             <div
-                className='px-2 border'>
+                className='px-2 '>
                 <TextBox
                     className=''
                     type='text'
@@ -99,8 +99,6 @@ export default function Group() {
         const newRoles = adminRoles.filter(adminRole => {
             let match = false;
             roleNames.forEach(roleName => {
-                console.log('roleName', roleName);
-                console.log('adminRole', adminRole);
                 if(roleName === adminRole.name){
                     match = true;
                 }
@@ -108,8 +106,6 @@ export default function Group() {
             return match;
         })
         .map(adminRole => adminRole.id);
-
-        console.log('newRoles', newRoles);
 
         changingGroup.roles = newRoles;
 
@@ -146,7 +142,7 @@ export default function Group() {
                 setShow={setModalShown}
                 header={`Group: ${modalHeader}`}
                 footer={footerButtons}
-                static={false} >
+                static={true} >
                 {modalMessage}
             </Modal>
             <table className='table-fixed border border-collapse w-full'>

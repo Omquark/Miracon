@@ -9,6 +9,7 @@ const LogLevel = {
     DEBUG: { name: 'DEBUG', level: 0 },
     INFO: { name: 'INFO', level: 1 },
     WARN: { name: 'WARN', level: 2 },
+    AUDIT: { name: 'AUDIT', level: 255 },
     ERROR: { name: 'ERROR', level: 255 },
 }
 

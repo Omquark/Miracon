@@ -14,6 +14,7 @@ function strictProperties(object, template){
     logEvent(LogLevel.INFO, `Received objects, removing keys not matching [${Object.keys(template).join(', ')}]`);
 
     os.forEach(o => {
+        if(!o) return;
         const newO = {};
         Object.keys(o).forEach(oKey => {
             if(template[oKey] !== undefined){
