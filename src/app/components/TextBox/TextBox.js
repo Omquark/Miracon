@@ -5,14 +5,21 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export default function TextBox(props) {
 
-    const { placeholder, type, id, value, disabled, className } = props;
+    const { placeholder, type, id, value, disabled, className, onChange } = props;
 
     const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         const elem = document.getElementById(id);
-        if(value) elem.value = value;
+        if (value) elem.value = value;
     }, [props.value])
+
+    const detectChange = (event) => {
+        if (!onChange) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onChange(event);
+    }
 
     return (
 
@@ -29,6 +36,7 @@ export default function TextBox(props) {
                 type={(type === 'text' || type === 'password') && !showPassword ? type : 'text'}
                 placeholder={' '}
                 id={id}
+                onChange={(event) => detectChange(event)}
                 onBlur={() => setShowPassword(false)}
                 defaultValue={value}
                 disabled={disabled}

@@ -105,6 +105,17 @@ export default function Command() {
     </>
   )
 
+  const sortBy = (column) => {
+    const newSorted = { ...sorted };
+    if (newSorted.column === column) {
+      newSorted.ascending = !sorted.ascending;
+    } else {
+      newSorted.column = column;
+      newSorted.ascending = true;
+    }
+    setSorted(newSorted);
+  }
+
   return (
     <div className='text-center'>
       <form id='commands-form'>

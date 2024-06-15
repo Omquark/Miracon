@@ -39,6 +39,7 @@ export default function Home() {
     sessionStorage.setItem('username', userInfo.name);
     sessionStorage.setItem('useremail', userInfo.email);
     sessionStorage.setItem('roles', userInfo.roles);
+    sessionStorage.setItem('changePassword', userInfo.changePassword);
 
     setLoginError({ erred: false, message: '' });
     push('/admin');

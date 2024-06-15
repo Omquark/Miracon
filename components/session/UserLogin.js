@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt')
 
 const { logEvent, LogLevel } = require("../Log");
-const { getUsers } = require("../rbac/User");
-const { getGroups, resolveRoles } = require("../rbac/Group");
+const { getUsers, updateUsers } = require("../rbac/User");
+const { resolveRoles } = require("../rbac/Group");
 const { getRoles } = require('../rbac/Role');
 
 /**
@@ -26,7 +26,7 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
-    let password = bytesFromBase64(new TextEncoder().encode(userInfo.password));
+    let password = bytesFromBase64(userInfo.password);
 
     const verified = await bcrypt.compare(password, pulledUsers[0].password);
 
@@ -35,7 +35,6 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
-    // const resolvedRoles = (await resolveRoles(pulledUsers[0])).map(role => getRoles({ id: role })[0].name);
     const resolvedRoles = [];
     const userRoles = await resolveRoles(pulledUsers[0]);
     for (roleID of userRoles) {
@@ -44,13 +43,30 @@ async function checkAndLoginUser(userInfo) {
         const roleName = role[0].name;
         resolvedRoles.push(roleName);
     }
+
     sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
         roles: resolvedRoles,
+        changePassword: pulledUsers[0].changePassword,
     }
 
     return sessionInfo;
+}
+
+async function updatePassword(userinfo) {
+    const user = (await getUsers({ name: userinfo.username }))[0];
+    if (!user) {
+        return { error: 'User could not be found to update password!' }
+    }
+    let passwordMatch = await bcrypt.compare(userinfo.oldPassword, user.password);
+    if (!passwordMatch) {
+        return { error: 'Old password does not match!' }
+    }
+
+    let newPassword = await bcrypt.hash(userinfo.newPassword, 14);
+    await updateUsers(user, { ...user, password: newPassword, changePassword: false });
+    return { message: 'Password updated' };
 }
 
 function bytesToBase64(bytes) {
@@ -59,8 +75,9 @@ function bytesToBase64(bytes) {
 }
 
 function bytesFromBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
+    const string = new TextEncoder().encode(bytes);
+    const binString = String.fromCodePoint(...string);
     return atob(binString);
 }
 
-module.exports = { checkAndLoginUser }
+module.exports = { checkAndLoginUser, updatePassword, bytesFromBase64, bytesToBase64 }

@@ -2,7 +2,7 @@
 
 import Sidebar from "./components/sidebar/Sidebar";
 import { usePathname } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Role from "./components/roles";
 import Group from "./components/groups";
 import User from "./components/users";
@@ -15,10 +15,12 @@ import AdminUsers from "./components/context/admin/users";
 import { UserInfoContext, UserPrefContext } from "../layout";
 import Command from './components/commands';
 import AdminCommands from "./components/context/admin/commands";
+import PasswordModal from "./components/PasswordModal/PasswordModal";
+import CommandExecution from "./components/CommandExecution";
 
 export default function Admin() {
 
-    const { prefs, setPrefs } = useContext(UserPrefContext);
+    const { prefs, } = useContext(UserPrefContext);
     const { userInfo, setUserInfo } = useContext(UserInfoContext);
     const [activePage, setActivePage] = useState("");
     const pathname = usePathname();
@@ -30,7 +32,8 @@ export default function Admin() {
         const info = {
             roles: typeof (window) !== "undefined" ? sessionStorage.getItem('roles').split(',') : [''],
             username: typeof (window) !== "undefined" ? sessionStorage.getItem('username') : '',
-            userEmail: typeof (window) !== "undefined" ? sessionStorage.getItem('useremail') : ''
+            userEmail: typeof (window) !== "undefined" ? sessionStorage.getItem('useremail') : '',
+            changePassword: typeof (window) !== 'undefined' ? sessionStorage.getItem('changePassword') === 'true' : false
         }
         setUserInfo(info);
     }, []);
@@ -44,13 +47,14 @@ export default function Admin() {
             case ("banned ip"): return <BannedIP />
             case ('banned players'): return <BannedPlayers />
             case ("whitelist"): return <Whitelist />
+            case ("command execution"): return <CommandExecution />
             default: return <></>
         }
     }
 
     return (
         <div className='text-center flex'>
-
+            {userInfo.changePassword ? <PasswordModal /> : <></>}
             <div className='h-screen flex-shrink-1'>
                 <Sidebar />
             </div>

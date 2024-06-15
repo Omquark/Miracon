@@ -1,7 +1,8 @@
 async function login(userInfo) {
+    
     let { username, password } = userInfo;
 
-    password = bytesToBase64(new TextEncoder().encode(password));
+    password = bytesToBase64(password);
 
     let response;
 
@@ -26,22 +27,23 @@ async function logout() {
 
     let response;
 
-    try{
-        response = await fetch(`http://${location.host}/logout`, 
-        {
-            headers: {
-                'content-type': 'application/json',
-                'content-length': 0,
-            },
-            method: 'GET',
-        });
+    try {
+        response = await fetch(`http://${location.host}/logout`,
+            {
+                headers: {
+                    'content-type': 'application/json',
+                    'content-length': 0,
+                },
+                method: 'GET',
+            });
     } catch (err) {
         console.log(err)
     }
 }
 
 function bytesToBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
+    const string = new TextEncoder().encode(bytes);
+    const binString = String.fromCodePoint(...string);
     return btoa(binString);
 }
 

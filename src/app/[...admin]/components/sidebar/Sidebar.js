@@ -21,6 +21,7 @@ export default function Sidebar() {
 
         const umgt = [];
         const wmgt = [];
+        const smgt = ['Command execution'];
         if (roles) {
             roles.forEach(role => {
                 switch (role.toUpperCase()) {
@@ -39,8 +40,8 @@ export default function Sidebar() {
                             umgt.push('Users');
                         }
                     }
-                    case('READ_COMMAND'): {
-                        if(!umgt.find(mgt => mgt === 'Commands')) {
+                    case ('READ_COMMAND'): {
+                        if (!umgt.find(mgt => mgt === 'Commands')) {
                             umgt.push('Commands')
                         }
                     }
@@ -67,9 +68,12 @@ export default function Sidebar() {
             if (wmgt.length > 0 && wmgt[0] !== 'White/Ban list management') {
                 wmgt.splice(0, 0, 'White/Ban list management');
             }
-
+            if (smgt.length > 0 && smgt[0] !== 'Server management') {
+                smgt.splice(0, 0, 'Server management');
+            }
             setUserMgt(umgt);
             setWhiteBanMgt(wmgt);
+            setServerMgt(smgt);
         }
     }, [userInfo]);
 
@@ -87,7 +91,7 @@ export default function Sidebar() {
                 <div className={`overflow-hidden ${prefs.sidebarOpen ? '' : ''}`} >
                     {userMgt && Array.isArray(userMgt) && userMgt.length > 0 ? <SidebarItem menuName={userMgt[0]} subMenus={userMgt.slice(1)} /> : <></>}
                     {whiteBanMgt && Array.isArray(whiteBanMgt) && whiteBanMgt.length > 0 ? <SidebarItem menuName={whiteBanMgt[0]} subMenus={whiteBanMgt.slice(1)} /> : <></>}
-                    {serverMgt && Array.isArray(serverMgt) ? <SidebarItem menuName={'Server configuration'} /> : <></>}
+                    {serverMgt && Array.isArray(serverMgt) ? <SidebarItem menuName={serverMgt[0]} subMenus={serverMgt.slice(1)} /> : <></>}
                 </div>
                 <div className='absolute text-xl right-0 top-1/2 '>
                     <button

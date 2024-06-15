@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
@@ -16,8 +16,13 @@ export default function Role() {
 
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
+    const isInitialMount = useRef(true);
+
     useEffect(() => {
-        dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles })
+        if (isInitialMount.current) {
+            dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles })
+            isInitialMount.current = false;
+        }
     }, []);
 
     const showRoleModal = (role) => {

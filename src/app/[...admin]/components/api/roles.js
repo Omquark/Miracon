@@ -1,31 +1,27 @@
 import { rolesActionTypes } from "../context/admin/roles";
 
-export async function pullRoles(dispatch){
+export async function pullRoles(dispatch) {
 
     let response;
     let data;
 
-    try{
-        response = await fetch(`http://${location.host}/roles`, 
-        {
-            headers: {
-                'content-type': 'application/json',
-            },
-            method: 'GET',
-        });
+    try {
+        response = await fetch(`http://${location.host}/roles`,
+            {
+                headers: {
+                    'content-type': 'application/json',
+                },
+                method: 'GET',
+            });
 
         data = await response.json();
 
-        //data = await response.text();
-
-        //console.log('data', data)
-
-    } catch(err)  {
+    } catch (err) {
         console.log(err);
         data = { error: 'Failed to access /roles on GET!' }
     }
 
-    if(data.error){
+    if (data.error) {
         alert(`There was an error attempting to get the roles from the server!\n${data.error}`);
         return;
     }
@@ -33,21 +29,21 @@ export async function pullRoles(dispatch){
     dispatch({ type: rolesActionTypes.REFRESH_ROLE, payload: data });
 }
 
-export async function saveRoles(roles, dispatch, action){
+export async function saveRoles(roles, dispatch, action) {
     let response;
     let data;
 
-    const payload = { data: roles, action: action}
+    const payload = { data: roles, action: action }
 
-    try{
+    try {
         response = await fetch(`http://${location.host}/roles`,
-        {
-            body: JSON.stringify(payload),
-            headers: {
-                'content-type': 'application/json',
-            },
-            method: 'POST',
-        });
+            {
+                body: JSON.stringify(payload),
+                headers: {
+                    'content-type': 'application/json',
+                },
+                method: 'POST',
+            });
 
         data = await response.json();
     } catch (err) {

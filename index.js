@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const { validationResult } = require('express-validator');
+
 const http = require('http');
 const nextReq = require('next');
 const dev = process.env.NODE_ENV !== 'production';
@@ -10,7 +12,7 @@ const handle = nextApp.getRequestHandler();
 
 const { getConfig, init } = require('./components/Config');
 const { logEvent, LogLevel, logError } = require('./components/Log');
-const { checkAndLoginUser } = require('./components/session/UserLogin');
+const { checkAndLoginUser, bytesFromBase64, updatePassword } = require('./components/session/UserLogin');
 const { LoginSessionOpts } = require('./components/session/LoginSession');
 const { getRoles, updateRoles } = require('./components/rbac/Role');
 const { getGroups, updateGroups, resolveRoles } = require('./components/rbac/Group');
@@ -20,6 +22,10 @@ const { InitCommands, getCommand } = require('./components/commands/Commands');
 const path = require('path');
 const { access, constants } = require('fs');
 const { getCommands } = require('./components/rbac/Command');
+const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsername } = require('./components/utility/Validators');
+const { InitConsoleCommands } = require('./components/commands/ConsoleCommands');
+const { getConsoleCommands } = require('./components/rbac/ConsoleCommand');
+const { RConnection } = require('./components/RConnnection');
 
 nextApp.prepare().then(async () => {
 
@@ -31,13 +37,32 @@ nextApp.prepare().then(async () => {
         limit: '1kb',
     }
 
-    const bodyParserJson = bodyParser.json(bodyParserJsonOptions);
-
-
+    app.use(bodyParser.json(bodyParserJsonOptions));
     app.use(session(LoginSessionOpts));
 
-    app.post('/login', bodyParserJson, async (req, res) => {
-        const userinfo = req.body;
+    app.post('/login', validateAndSanitizeUser, async (req, res) => {
+
+        const rawBody = req.body;
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            logEvent(LogLevel.INFO, `Validation failed at login: ${JSON.stringify(errors)}`);
+            return res.status(400).json({ error: errors.array() });
+        }
+
+        const userinfo = {};
+        userinfo.username = rawBody.username;
+        userinfo.password = rawBody.password;
+
+        logEvent(LogLevel.DEBUG, `userinfo: ${JSON.stringify(userinfo)}`);
+        if (!isValidPassword(bytesFromBase64(userinfo.password))) {
+            res.status(400).send({ error: 'Password must be alphanumeric and can contain any of !@#$%^&*?\\' });
+            return;
+        }
+        if (!userinfo.username || !userinfo.password) {
+            res.status(400).send({ error: 'No username or password provided' });
+            return;
+        }
         const pulledInfo = await checkAndLoginUser(userinfo);
 
         if (pulledInfo.error) {
@@ -51,17 +76,53 @@ nextApp.prepare().then(async () => {
         res.status(200).send(pulledInfo);
     });
 
-    app.use('/logout', (req, res) => {
+    app.all('/logout', (req, res) => {
         logEvent(LogLevel.DEBUG, 'Logging out');
         req.session.destroy();
         res.redirect('/');
     });
 
-    app.use(/\/roles|\/groups|\/users|\/admin|\/commands/, async (req, res, next) => {
+    app.put('/change_password', async (req, res) => {
+        if (!req.session.userInfo) {
+            res.status(401).send({ error: 'User is not logged in.' });
+            return;
+        }
+
+        const rawBody = req.body;
+        if (!rawBody.userinfo && !rawBody.userinfo.oldPassword &&
+            !isValidPassword(rawBody.userinfo.oldPassword) ||
+            !rawBody.userinfo && !rawBody.userinfo.newPassword &&
+            !isValidPassword(rawBody.userinfo.newPassword)) {
+            res.status(400).send({ error: 'Password is not valid, must be alphanumeric or any of !@#$%^&*?\\' });
+            return;
+        }
+
+        if (!rawBody?.userinfo?.username || !isValidUsername(rawBody.userinfo.username)) {
+            logEvent(LogLevel.AUDIT, 'A user attempted to change a password, but did not have a session or userinfo, user has been logged out and the session destroyed.');
+            logEvent(LogLevel.AUDIT, 'I am also blacklisting this IP for 15 minutes to prevent any further attempts');
+            logEvent(LogLevel.AUDIT, `userinfo: ${rawBody?.userinfo}, req.session.userinfo: ${req.session.userInfo}`);
+            req.session.destroy();
+            res.redirect('/');
+            return;
+        }
+
+        const userinfo = {
+            username: req.session.userInfo.name,
+            oldPassword: rawBody.userinfo.oldPassword,
+            newPassword: rawBody.userinfo.newPassword,
+        }
+
+        const message = await updatePassword(userinfo);
+        res.status(message.error ? 400 : 200).send(message)
+    });
+
+    app.all(/!\//, async (req, res, next) => {
+        // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
         const userInfo = req.session.userInfo;
 
+        logEvent(LogLevel.DEBUG, `process.env.NODE_ENV = ${process.env.NODE_ENV}`);
+
         if (!userInfo) {
-            // res.redirect('/');
             res.status(401).send({ error: 'User is not logged in' });
             return;
         }
@@ -91,6 +152,41 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(await getCommands()));
     });
 
+    app.get('/console', async (req, res) => {
+        const commands = await getConsoleCommands();
+        res.status(200).send(commands);
+    });
+
+    app.put('/console', async (req, res) => {
+        const commandName = req.body?.name?.replace(/^![\w_]+$/, '');
+        logEvent(LogLevel.INFO, `Attempting to execute command ${commandName}`);
+        if (!commandName) {
+            logEvent(LogLevel.INFO, `Command ${commandName} is not a valid command.`);
+            res.status(400).send({ error: 'Attempted to execute a blank or invalid command!' });
+            return;
+        }
+
+        command = (await getConsoleCommands({ name: commandName }))[0];
+        if (!command) {
+            logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
+            res.status(404).send({ error: 'Command cannot be found!' });
+            return;
+        }
+
+        const rcon = new RConnection({
+            password: 'password',
+            serverAddress: 'minecraft',
+            serverPort: 25575
+        });
+
+        logEvent(LogLevel.INFO, `Sending ${commandName} to be executed`);
+
+        rcon.login();
+        rcon.send('say test message');
+
+        res.status(200).send({ message: 'Command executed successfully.'});
+    });
+
     app.get('/roles', async (req, res) => {
         const foundCmd = await getCommand('READ_ROLE', req.session.userInfo);
 
@@ -102,7 +198,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(await getRoles()));
     });
 
-    app.post('/roles', bodyParserJson, async (req, res) => {
+    app.post('/roles', validateNameId, async (req, res) => {
         const rawBody = req.body;
 
         const newRoles = {};
@@ -131,7 +227,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(pulledGroups));
     });
 
-    app.post('/groups', bodyParserJson, (req, res) => {
+    app.post('/groups', validateNameId, (req, res) => {
         const rawBody = req.body;
         const newGroups = [];
         let updated;
@@ -159,7 +255,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(pulledUsers));
     });
 
-    app.post('/users', bodyParserJson, (req, res) => {
+    app.post('/users', validateNameId, (req, res) => {
         const rawBody = req.body;
         const newUsers = [];
         let updated;
@@ -243,6 +339,7 @@ nextApp.prepare().then(async () => {
     if (Config.nodeConfig.initUsers) {
         await InitUsers();
         await InitCommands();
+        await InitConsoleCommands();
     }
 
     http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {

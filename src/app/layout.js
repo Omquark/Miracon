@@ -18,6 +18,7 @@ export default function RootLayout({ children }) {
     username: '',
     userEmail: '',
     userRoles: ['', ''],
+    changePassword: false,
   }
 
   const [prefs, setPrefs] = useState(preferences);

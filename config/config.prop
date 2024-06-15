@@ -41,7 +41,7 @@ WEB_SERVER_PORT=3011
 # Determines if we should create the users from the ops file from the minecraft directory.
 # Setting this to 1 will overwrite the users database with new users/groups to align with minecraft security.
 # Setting this to 0 will preserve the users database.
-INIT_USERS=0
+INIT_USERS=1
 
 # When set to 1, creates a back-up admin with access to users roles and groups for recovery.
 # This admin can be deleted and will be overwritten in the event of an emergency.

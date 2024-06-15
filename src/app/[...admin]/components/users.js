@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useRef } from 'react';
 import { pullUsers, saveUsers } from './api/users';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
@@ -23,10 +23,15 @@ export default function User() {
     const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
+    const isInitialRender = useRef(true);
+
     useEffect(() => {
-        dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
-        dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
-        dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
+        if (isInitialRender.current) {
+            dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
+            dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
+            dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
+            isInitialRender.current = false;
+        }
     }, []);
 
     const showUserModal = async (user) => {

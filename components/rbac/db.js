@@ -53,6 +53,7 @@ async function createIndexes() {
   INDEXES.group = ['name', 'id'];
   INDEXES.user = ['name', 'id', 'email'];
   INDEXES.command = ['name', 'id'];
+  INDEXES.consoleCommand = ['name', 'id'];
 
   logEvent(LogLevel.INFO, 'Checking indexes for the database. This will create collections if they do not exist.');
 
@@ -275,6 +276,10 @@ async function getCollection(type) {
     }
     case ('COMMAND' || 'COMMANDS'): {
       targetCollection = await client.db().collection("commands");
+      return targetCollection;
+    }
+    case ('CONSOLECOMMAND' || 'CONSOLECOMMANDS'): {
+      targetCollection = await client.db().collection("console_commands");
       return targetCollection;
     }
     default: {

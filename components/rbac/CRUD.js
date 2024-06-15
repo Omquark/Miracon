@@ -163,7 +163,7 @@ async function validateRoles(check) {
     logEvent(LogLevel.DEBUG, `check from validateRoles: ${JSON.stringify(check)}`);
     const rs = await getObjects('role');
     const cs = Array.isArray(check) ? [...check] : [check]
-    if (check.length === 0) {
+    if (cs.length === 0) {
         logEvent(LogLevel.INFO, 'No roles passed, updating object to have no roles');
         return true;
     }

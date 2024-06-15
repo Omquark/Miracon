@@ -30,7 +30,6 @@ export const rolesActionTypes = {
  * @returns The new state to be used
  */
 function rolesReducer(state, action) {
-  console.log(action);
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
     case (rolesActionTypes.ADD_ROLE): {
@@ -79,9 +78,7 @@ function rolesReducer(state, action) {
 
 export default function AdminRoles(props) {
 
-
   const { children } = props;
-
   const [adminRoles, dispatchAdminRoles] = useReducer(rolesReducer, initialRolesState);
 
   return (

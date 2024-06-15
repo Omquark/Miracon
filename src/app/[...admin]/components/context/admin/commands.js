@@ -17,7 +17,6 @@ export const commandsActionTypes = {
 }
 
 function commandsReducer(state, action) {
-  console.log('action', action);
   switch (action.type.toUpperCase()) {
     case (commandsActionTypes.ADD_COMMAND): {
       console.log('Adding command placeholder');
