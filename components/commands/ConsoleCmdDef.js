@@ -25,6 +25,46 @@ const ConsoleCommands = [
     'roles': ['Level 2'],
     'blacklistRoles': [''],
   },
+  {
+    'name': 'save-off', 
+    'description': 'Disables the auto save feature of the world.',
+    'required': [''],
+    'optional': [''],
+    'roles': ['Level 4'],
+    'blacklistRoles': [''],
+  },
+  {
+    'name': 'save-on', 
+    'description': 'Enables the auto save feature of the world.',
+    'required': [''],
+    'optional': [''],
+    'roles': ['Level 4'],
+    'blacklistRoles': [''],
+  },
+  {
+    'name': 'reload', 
+    'description': 'Reloads the loot tables, advancements, and functions from disk.',
+    'required': [''],
+    'optional': [''],
+    'roles': ['Level 2'],
+    'blacklistRoles': [''],
+  },
+  {
+    'name': 'stop', 
+    'description': 'Stops the server',
+    'required': [''],
+    'optional': [''],
+    'roles': ['Level 4'],
+    'blacklistRoles': [''],
+  },
+  {
+    'name': 'toggledownfall', 
+    'description': 'Toggles the weather.',
+    'required': [''],
+    'optional': [''],
+    'roles': ['Level 2'],
+    'blacklistRoles': [''],
+  },
 ]
 
 module.exports = { ConsoleCommand, ConsoleCommands }

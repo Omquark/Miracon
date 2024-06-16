@@ -21,7 +21,7 @@
 [00:25:24] [Server thread/INFO]: /help [page|command name]
 [00:25:26] [Server thread/INFO]: /kick <player> [reason ...]
 [00:25:26] [Server thread/INFO]: /kill [player|entity]
-[00:25:26] [Server thread/INFO]: /list
++[00:25:26] [Server thread/INFO]: /list
 [00:25:26] [Server thread/INFO]: /locate <feature>
 [00:25:26] [Server thread/INFO]: /me <action ...>
 [00:25:26] [Server thread/INFO]: /op <player>
@@ -30,14 +30,14 @@
 [00:25:39] [Server thread/INFO]: /particle <name> <x> <y> <z> <xd> <yd> <zd> <speed> [count] [mode] [player] [params]
 [00:25:39] [Server thread/INFO]: /playsound <sound> <source> <player> [x] [y] [z] [volume] [pitch] [minimumVolume]
 [00:25:39] [Server thread/INFO]: /recipe <give|take> [player] <name|*>
-[00:25:39] [Server thread/INFO]: /reload
++[00:25:39] [Server thread/INFO]: /reload
 [00:25:39] [Server thread/INFO]: /replaceitem <entity|block> ...
 [00:25:39] [Server thread/INFO]: /save-all [flush]
-[00:25:47] [Server thread/INFO]: /save-off
-[00:25:47] [Server thread/INFO]: /save-on
++[00:25:47] [Server thread/INFO]: /save-off
++[00:25:47] [Server thread/INFO]: /save-on
 [00:25:47] [Server thread/INFO]: /say <message ...>
 [00:25:47] [Server thread/INFO]: /scoreboard <objectives|players|teams> ...
-[00:25:47] [Server thread/INFO]: /seed
++[00:25:47] [Server thread/INFO]: /seed
 [00:25:47] [Server thread/INFO]: /setblock <x> <y> <z> <block> [dataValue|state] [oldBlockHandling] [dataTag]
 [00:25:47] [Server thread/INFO]: /setidletimeout <minutes>
 [00:25:49] [Server thread/INFO]: /setworldspawn [<x> <y> <z>]

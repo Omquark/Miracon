@@ -30,6 +30,11 @@ const { RConnection } = require('./components/RConnnection');
 nextApp.prepare().then(async () => {
 
     init();
+    const rcon = new RConnection({
+        password: 'password',
+        serverAddress: 'minecraft',
+        serverPort: 25575
+    });
 
     const Config = getConfig();
 
@@ -173,18 +178,20 @@ nextApp.prepare().then(async () => {
             return;
         }
 
-        const rcon = new RConnection({
-            password: 'password',
-            serverAddress: 'minecraft',
-            serverPort: 25575
-        });
-
         logEvent(LogLevel.INFO, `Sending ${commandName} to be executed`);
 
-        rcon.login();
-        rcon.send('say test message');
+        let response;
+        try {
+            await rcon.login();
+            response = await rcon.send(commandName);
+        } catch (err) {
+            response = err;
+            logError(err);
+            res.status(400).send({ message: response });
+            return;
+        }
 
-        res.status(200).send({ message: 'Command executed successfully.'});
+        res.status(200).send({ message: response });
     });
 
     app.get('/roles', async (req, res) => {

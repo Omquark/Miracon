@@ -40,70 +40,95 @@ class RConnection {
      * This will also clear the password after successful/failed attempts. Will reattempt on failure
      */
     login() {
+        return new Promise((resolve, reject) => {
 
-        this.payload = structPacket({
-            packetId: 0x10,
-            packetType: PACKET_TYPE.PACKET_AUTH,
-            packetBody: this.password
-        });
-
-        this.socket = net.connect({
-            host: this.serverAddress,
-            port: this.serverPort
-        });
-
-        this.socket.on('connect', () => {
-            logEvent(LogLevel.INFO, `Connected to ${this.socket.remoteAddress}:${this.socket.remotePort}`);
-            try {
-                this.socket.write(this.payload);
-            } catch (err) {
-                logError(err);
+            if (this.connected) {
+                logEvent(LogLevel.INFO, 'The socket is already open to RCON!');
+                return resolve('Socket is already open!')
             }
-        })
-            .on('data', (data) => { //Check if we connected
-                let response = destructPacket(data);
-                console.log('response from RCON', response);
-                logEvent(LogLevel.DEBUG, `response from RCON login: ${JSON.stringify(data.buffer)}`);
-            })
-            .on('error', (err) => { //Failed!
-                logError(err);
-                this.connected = false;
-            })
-            //These need changed to appropriately react to the events.
-            .on('close', () => { console.log('close event') })
-            .on('drain', () => { console.log('drain event') })
-            .on('end', () => { console.log('end event') })
-            .on('lookup', () => { console.log('lookup event') })
-            .on('ready', () => { console.log('ready event') })
-            .on('timeout', () => { console.log('timeout event') })
 
+            const authPacket = structPacket({
+                packetId: 0x10,
+                packetType: PACKET_TYPE.PACKET_AUTH,
+                packetBody: this.password,
+            });
+
+            this.socket = net.connect({ host: this.serverAddress, port: this.serverPort }, () => {
+                this.socket.write(authPacket);
+            });
+
+
+
+            this.socket.on('error', (err) => {
+                logError(`There was an error with th eRCON connection: ${JSON.stringify(err)}`);
+                return reject(err);
+            })
+
+            this.socket.once('data', (data) => {
+                const response = destructPacket(data);
+                let message;
+                if (response.packetId === -1) {
+                    message = 'Failed to get connection to RCON. This is likely due to invalid credentials. Check your password and settings and try again.'
+                    logError(message);
+                    return reject(message);
+                } else {
+                    message = 'Succeeded in connecting to RCON on configured host. You can now send messages.';
+                    logEvent(LogLevel.INFO, message);
+                    this.connected = true;
+                    return resolve(message)
+                }
+            });
+
+            this.socket.on('close', (hadError) => {
+                const message = `Connection was closed and listeners have been removed.' + ${hadError ? ' There was an error which caused the close' : ''}`;
+                logEvent(LogLevel.INFO, message);
+                this.socket.removeAllListeners(); //Remove all listeners because the connection no longer exists.
+                this.connected = false;
+                return;
+            });
+
+            this.socket.on('timeout', async () => {
+                const message = 'The socket has timed out, the conenction will be closed.'
+                console.log(message);
+                await this.socket.destroy();
+            });
+        });
     }
 
     send(command) {
-        if (!command) {
-            logEvent('Attempted to call command with no command arguement!');
-            return;
-        }
+        return new Promise((resolve, reject) => {
+            if (!command) {
+                logEvent('Attempted to call command with no command arguement!');
+                return reject('Attempted to call command with no command arguement!');
+            }
 
-        const MessageHandler = (data) => {
-            let response;
-            response = destructPacket(data);
-            logEvent(LogLevel.DEBUG, `data from command: ${JSON.stringify(response)}`);
-        }
 
-        this.payload = structPacket({
-            packetId: 0x11,
-            packetType: PACKET_TYPE.PACKET_COMMAND,
-            packetBody: command,
+            this.payload = structPacket({
+                packetId: 0x11,
+                packetType: PACKET_TYPE.PACKET_COMMAND,
+                packetBody: command,
+            });
+
+            try {
+                this.socket.on('data', (data) => {
+                    let response;
+                    response = destructPacket(data);
+                    logEvent(LogLevel.DEBUG, `Data from command: ${JSON.stringify(response)}`);
+                    resolve(response.packetBody);
+                });
+                logEvent(LogLevel.DEBUG, 'Writing data to the socket');
+                this.socket.write(this.payload);
+            } catch (err) {
+                logError(LogLevel.ERROR, `Error attempting to send command ${command}! Logging error...`);
+                logError(LogLevel.ERROR, err);
+                return reject(err);
+            }
+
+            // Use this event for when the socket is empty for sending multipacket messages
+            // this.socket.on('drain', () => {
+            //     logEvent(LogLevel.DEBUG, 'This can be used to listen for drain events.');
+            // })
         });
-
-        try {
-            this.socket.on('data', (data) => MessageHandler(data))
-            this.socket.write(this.payload);
-        } catch (err) {
-            logError(LogLevel.ERROR, `Error attempting to send command ${command}! Logging error...`);
-            logError(LogLevel.ERROR, err);
-        }
     }
 }
 
