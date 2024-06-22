@@ -5,7 +5,7 @@ import { pullGroups, saveGroups } from './api/groups';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
-import Selection from '@/app/components/Selection/Selection';
+import MultiSelection from '@/app/components/MultiSelection/MultiSelection';
 import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
 import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 
@@ -21,7 +21,7 @@ export default function Group() {
     useEffect(() => {
         dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
         dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
-    }, []);
+    }, [dispatchAdminGroups, dispatchAdminRoles]);
 
     const showGroupModal = async (group) => {
         const selectedRoles = {};
@@ -56,7 +56,7 @@ export default function Group() {
                     id='GroupName'
                     value={group.name}
                 />
-                <Selection
+                <MultiSelection
                     className=''
                     placeholder='Roles'
                     id='GroupRoles'

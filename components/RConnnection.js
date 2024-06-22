@@ -2,6 +2,7 @@ const net = require('net');
 
 const { structPacket, PACKET_TYPE, destructPacket } = require('./Packet');
 const { logError, logEvent, LogLevel } = require('./Log');
+const { getRoles } = require('./rbac/Role');
 
 //Default configurable options for RCON
 const RCONOptions = {
@@ -89,7 +90,7 @@ class RConnection {
 
             this.socket.on('timeout', async () => {
                 const message = 'The socket has timed out, the conenction will be closed.'
-                console.log(message);
+                logEvent(LogLevel.INFO, message);
                 await this.socket.destroy();
             });
         });

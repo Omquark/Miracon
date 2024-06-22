@@ -89,11 +89,11 @@ export default function AdminGroups(props) {
 
   useEffect(() => {
     dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
-  }, [])
+  }, [dispatchAdminRoles])
 
   return (
-      <AdminGroupsContext.Provider value={{ adminGroups: adminGroups, dispatchAdminGroups: dispatchAdminGroups }}>
-        {children}
-      </AdminGroupsContext.Provider>
+    <AdminGroupsContext.Provider value={{ adminGroups: adminGroups, dispatchAdminGroups: dispatchAdminGroups }}>
+      {children}
+    </AdminGroupsContext.Provider>
   )
 }

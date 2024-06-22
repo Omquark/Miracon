@@ -171,12 +171,12 @@ nextApp.prepare().then(async () => {
             return;
         }
 
-        command = (await getConsoleCommands({ name: commandName }))[0];
-        if (!command) {
-            logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
-            res.status(404).send({ error: 'Command cannot be found!' });
-            return;
-        }
+        // command = (await getConsoleCommands({ name: commandName }))[0];
+        // if (!command) {
+        //     logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
+        //     res.status(404).send({ error: 'Command cannot be found!' });
+        //     return;
+        // }
 
         logEvent(LogLevel.INFO, `Sending ${commandName} to be executed`);
 

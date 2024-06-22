@@ -23,7 +23,7 @@ export default function Role() {
             dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles })
             isInitialMount.current = false;
         }
-    }, []);
+    }, [dispatchAdminRoles]);
 
     const showRoleModal = (role) => {
         const message = (

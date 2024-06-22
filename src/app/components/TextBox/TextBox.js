@@ -12,7 +12,7 @@ export default function TextBox(props) {
     useEffect(() => {
         const elem = document.getElementById(id);
         if (value) elem.value = value;
-    }, [props.value])
+    }, [id, value])
 
     const detectChange = (event) => {
         if (!onChange) return;
@@ -44,8 +44,9 @@ export default function TextBox(props) {
             <label
                 className={
                     'absolute duration-300 whitespace-nowrap ' +
-                    'z-10 hover:cursor-text px-0.5 scale-75 mx-2.5 ' +
-                    'bg-opacity-100 bg-white dark:bg-black ' +
+                    'hover:cursor-text px-0.5 scale-75 mx-2.5 ' +
+                    // 'bg-opacity-100 bg-white dark:bg-black ' +
+                    'bg-opacity-100 bg-white peer-placeholder-shown:bg-inherit peer-focus:bg-white ' +
                     'transform left-0 top-0 ' +
                     'peer-placeholder-shown:top-4 peer-placeholder-shown:scale-100 ' +
                     'peer-focus:scale-75 peer-focus:top-0 '
