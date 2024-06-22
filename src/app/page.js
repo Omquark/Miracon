@@ -5,7 +5,8 @@ import Button from './components/Button/Button'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from './api/login';
-import CheckBox from './components/CheckBox/CheckBox';
+import Selection from './components/Selection/Selection';
+import MultiSelection from './components/MultiSelection/MultiSelection';
 
 export default function Home() {
 

@@ -1,5 +1,5 @@
 import Modal from "@/app/components/Modal/Modal";
-import Selection from "@/app/components/Selection/Selection";
+import MultiSelection from "@/app/components/MultiSelection/MultiSelection";
 import TextBox from "@/app/components/TextBox/TextBox";
 import { useContext, useEffect, useState } from "react";
 import { AdminCommandsContext, commandsActionTypes } from "./context/admin/commands";
@@ -20,7 +20,7 @@ export default function Command() {
   useEffect(() => {
     dispatchAdminCommands({ type: commandsActionTypes.GET_COMMAND, context: dispatchAdminCommands });
     dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
-  }, []);
+  }, [dispatchAdminCommands, dispatchAdminRoles]);
 
   const showCommandModal = (command) => {
     const selectedRoles = {};
@@ -64,13 +64,13 @@ export default function Command() {
           value={command.description}
           disabled={true}
         />
-        <Selection
+        <MultiSelection
           className=''
           placeholder='roles'
           id='CommandRoles'
           values={selectedRoles}
         />
-        <Selection
+        <MultiSelection
           className=''
           placeholder='Blacklisted roles'
           id='CommandBlacklistRoles'

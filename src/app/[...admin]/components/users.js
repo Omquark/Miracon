@@ -5,7 +5,7 @@ import { pullUsers, saveUsers } from './api/users';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
-import Selection from '@/app/components/Selection/Selection';
+import MultiSelection from '@/app/components/MultiSelection/MultiSelection';
 import CheckBox from '@/app/components/CheckBox/CheckBox';
 import { AdminUsersContext, usersActionTypes } from './context/admin/users';
 import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
@@ -32,7 +32,7 @@ export default function User() {
             dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
             isInitialRender.current = false;
         }
-    }, []);
+    }, [dispatchAdminUsers, dispatchAdminGroups, dispatchAdminRoles]);
 
     const showUserModal = async (user) => {
         const selectedRoles = {};
@@ -92,13 +92,13 @@ export default function User() {
                     id='UserEmail'
                     value={user.email}
                 />
-                <Selection
+                <MultiSelection
                     className=''
                     placeholder='Roles'
                     id='UserRoles'
                     values={selectedRoles}
                 />
-                <Selection
+                <MultiSelection
                     className=''
                     placeholder='Groups'
                     id='UserGroups'

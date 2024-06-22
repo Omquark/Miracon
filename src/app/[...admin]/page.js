@@ -29,8 +29,11 @@ export default function Admin() {
         //Known pathname will begin with /admin, we need the next pathname ONLY
         const newPage = pathname.split('/')[2];//First element is empty, then admin, 3rd element is what we want
         setActivePage(newPage !== undefined ? newPage.charAt(0).concat(newPage.slice(1)) : '');
+        if(!sessionStorage.getItem('username')){
+            window.location.href = '/';
+        }
         const info = {
-            roles: typeof (window) !== "undefined" ? sessionStorage.getItem('roles').split(',') : [''],
+            roles: typeof (window) !== "undefined" ? sessionStorage.getItem('roles')?.split(',') : [''],
             username: typeof (window) !== "undefined" ? sessionStorage.getItem('username') : '',
             userEmail: typeof (window) !== "undefined" ? sessionStorage.getItem('useremail') : '',
             changePassword: typeof (window) !== 'undefined' ? sessionStorage.getItem('changePassword') === 'true' : false

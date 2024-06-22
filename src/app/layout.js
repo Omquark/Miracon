@@ -1,6 +1,7 @@
 'use client'
 
 import './globals.css'
+import 'react-toastify/dist/ReactToastify.css'
 import Header from './components/Header/Header';
 import { createContext, useState, useRef, useEffect } from 'react';
 

@@ -5,12 +5,12 @@ import { useEffect, useRef } from "react";
 export default function Modal(props) {
 
     const { id, children, show, setShow, header, footer } = props;
-    const isStatic = props.static;
 
     const modalRef = useRef(undefined);
 
     useEffect(() => {
         const body = Array.from(document.getElementsByTagName('body'))[0];
+        const isStatic = props.static;
 
         if (show) {
             body.classList.add(['overflow-hidden']);
@@ -34,7 +34,7 @@ export default function Modal(props) {
             body.classList.remove(['overflow-hidden']);
             document.removeEventListener('mousedown', (event) => handleOutsideClick(event));
         }
-    }, [show]);
+    }, [show, setShow, props.static]);
 
 
 

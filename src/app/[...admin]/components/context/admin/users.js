@@ -92,7 +92,7 @@ export default function AdminUsers(props) {
   useEffect(() => {
     dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
     dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
-  }, [])
+  }, [dispatchAdminGroups, dispatchAdminRoles])
 
   return (
       <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>

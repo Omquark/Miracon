@@ -37,14 +37,14 @@ async function checkAndLoginUser(userInfo) {
 
     const resolvedRoles = [];
     const userRoles = await resolveRoles(pulledUsers[0]);
-    for (roleID of userRoles) {
+    for (let roleID of userRoles) {
         logEvent(LogLevel.DEBUG, `roleID: ${roleID}`);
         const role = await getRoles({ id: roleID });
         const roleName = role[0].name;
         resolvedRoles.push(roleName);
     }
 
-    sessionInfo = {
+    let sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
         roles: resolvedRoles,

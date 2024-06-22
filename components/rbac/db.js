@@ -228,7 +228,7 @@ async function removeData(type, object) {
 async function initDatabase() {
 
   await checkConnection();
-  const tables = ['users', 'groups', 'roles', 'commands']
+  const tables = ['users', 'groups', 'roles', 'commands', 'console_commands']
   for (tableName of tables) {
     await client.db().dropCollection(tableName);
     await client.db().createCollection(tableName);

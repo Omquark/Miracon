@@ -16,7 +16,7 @@ export default function PasswordModal() {
   const { userInfo, setUserInfo } = useContext(UserInfoContext);
 
   useEffect(() => {
-    showPasswordModal();
+    // showPasswordModal();
   }, []);
 
   const newChange = () => {

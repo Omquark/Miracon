@@ -12,3 +12,4 @@ Locked up endpoints with security, user must be logged in to access most endpoin
 Implemented command security, validates user roles before allowing commands with auditing.
 Commands are also stored in the db, READ_ROLES command has been implemented
 Commands can be shown on the front end, cannot be updated yet.
+COnsole commands can be executed form the GUI, but has no security features yet.

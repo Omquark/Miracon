@@ -26,7 +26,6 @@ const PACKET_INFO = {
  * @returns The fully structured Packet.
  */
 function structPacket(packetInfo){
-
     const { packetId, packetType, packetBody } = packetInfo;
 
     //The packetSize, needed for the packet, 4 bytes

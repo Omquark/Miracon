@@ -1,32 +1,26 @@
-import { IoMdArrowDropdown } from 'react-icons/io';
 import { useEffect, useRef, useState } from "react";
+import { IoMdArrowDropdown } from "react-icons/io";
 
 export default function Selection(props) {
 
-    const { className, id, placeholder, values } = props;
+    const { className, id, placeholder, values, selected } = props;
 
+    const [vals, setVals] = useState(['']);
+    const [selectedValue, setSelectedValue] = useState('');
     const [expanded, setExpanded] = useState(false);
-    const [expVals, setExpVals] = useState({});
-    const dropdownRef = useRef(undefined); //Used as a ref for the dropdown box
+
+    const dropdownRef = useRef(undefined)
 
     useEffect(() => {
-        setExpVals(values);
-
-        Array.from(
-            document
-                .getElementById(id)
-                .getElementsByTagName('input'))
-            .filter(input => input.type === 'checkbox')
-            .forEach(check => {
-                check.checked = values[check.id.substring(check.id.indexOf('-') + 1)];
-            })
+        setVals(['none', ...values]);
+        setSelectedValue(selected ? selected : values[0]);
 
         document.addEventListener('mousedown', (event) => handleOutsideClick(event));
 
         return () => {
             document.removeEventListener('mousedown', (event) => handleOutsideClick(event));
         }
-    }, [props.values])
+    }, [values, selected]);
 
     const expand = () => {
         setExpanded(!expanded);
@@ -38,81 +32,63 @@ export default function Selection(props) {
         }
     }
 
-    const updateSelected = (val) => {
-        const updateCheck = document.getElementById(`check-${val}`);
-        const newVals = { ...expVals };
-        newVals[val] = !newVals[val];
-        updateCheck.checked = newVals[val];
-        setExpVals(newVals);
-    }
-
     return (
-        <div
-            className={'relative w-full my-2 lg:my-3 '}
-            id={id}>
-            <div className={
-                'duration-300 bg-white dark:bg-black ' + 
-                //'duration-300 border-2 rounded-xl bg-white dark:bg-black ' +
-                //'border-cyan-700 dark:border-cyan-300 ' +
-                className
-            }>
-                <input
-                    className={
-                        'w-full bg-white dark:bg-black border-2 rounded-xl ' +
-                        'border-cyan-700 dark:border-cyan-300 h-9 '
-                    }
-                    disabled
-                    value={placeholder}
-                    onClick={() => expand()} />
-                <button
-                    className={
-                        'duration-300 ' +
-                        'absolute text-3xl transform -translate-x-8 translate-y-1 ' +
-                        `${expanded ? '' : 'rotate-90 '}`
-                    }
-                    onClick={() => expand()}
-                    type='button'>
-                    <IoMdArrowDropdown />
-                </button>
-            </div>
-            {
-                //expanded ?
-                <div
-                    className={
-                        'absolute text-left border-2 rounded-xl overflow-y-scroll w-full z-10 ' +
-                        'border-cyan-700 dark:border-cyan-300 max-h-48 ' +
-                        `${expanded ? '' : 'hidden'}`
-                    }
-                    ref={dropdownRef} >
-                    {
-                        Object.keys(values).map(val => (
-                            <div key={val}
+        <div className='relative my-2 '>
+            <input
+                className={
+                    'w-full border-2 border-cyan-700 dark:border-cyan-300 rounded-xl ' +
+                    'bg-white h-9 ' +
+                    className
+                }
+                disabled
+                value={selectedValue} />
+            <label
+                className={
+                    'absolute transform -top-3 scale-75 left-0 bg-white z-10 ' +
+                    'px-0.5 mx-2.5 ' +
+                    ' ' +
+                    ' '
+                }
+                id={`label-${id}`}
+                htmlFor={id} >
+                {placeholder}
+            </label>
+            <button
+                className={
+                    'duration-300 ' +
+                    'absolute text-3xl transform -translate-x-8 translate-y-1 ' +
+                    `${expanded ? '' : 'rotate-90'} `
+                }
+                onClick={() => expand()} >
+                <IoMdArrowDropdown />
+            </button>
+            <div
+                className={
+                    'absolute text-left border-2 rounded-xl overflow-y-scroll w-full z-10 ' +
+                    'border-cyan-700 dark:border-cyan-300 max-h-48 ' +
+                    `${expanded ? '' : 'hidden'}`
+                }
+                ref={dropdownRef} >
+                {
+                    vals && Array.isArray(vals) ?
+                        vals.map(val => (
+                            <div
                                 className={
-                                    'ps-2 ' +
-                                    `${expVals[val] ?
-                                        'bg-blue-700 text-white dark:bg-blue-300 dark:text-black' :
-                                        'bg-white text-black dark dark:bg-black dark:text-white'}`
+                                    val === selectedValue ?
+                                        'bg-blue-700 text-white dark:bg-blue-300 dark:text-black ' :
+                                        'bg-white dark:bg-black cursor-pointer '
                                 }
-                                onClick={() => updateSelected(val)}>
-
-                                <input
-                                    className={
-                                        `hidden`
-                                    }
-                                    id={`check-${val}`}
-                                    type='checkbox'
-                                    value={val}
-                                    onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} />
-                                <label
-                                    className={
-                                        ''
-                                    }
-                                    htmlFor={`check-${val}`}>{val}</label>
+                                key={val} >
+                                <button
+                                    className='w-full text-left ps-2'
+                                    onClick={() => { setSelectedValue(val), setExpanded(false) }}>
+                                    {val}
+                                </button>
                             </div>
-                        ))
-                    }
-                </div> //: <></> //expanded ?
-            }
-        </div >
+                        )) : <></>
+                }
+
+            </div>
+        </div>
     )
 }
