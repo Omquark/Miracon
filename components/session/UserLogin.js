@@ -54,14 +54,25 @@ async function checkAndLoginUser(userInfo) {
     return sessionInfo;
 }
 
+/**
+ * Updates a password to a new password. This will verify the password is not identical to the old password,
+ * but does not validate password strength. The passwords passed here are plain text.
+ * @param {Object} userinfo An object of { username, newPassword, oldPassword }
+ * @returns An Object with either an erro property or message property.
+ * error confirms the change failed. message confirms the update succeeded.
+ */
 async function updatePassword(userinfo) {
     const user = (await getUsers({ name: userinfo.username }))[0];
     if (!user) {
-        return { error: 'User could not be found to update password!' }
+        return { error: 'User could not be found to update password!' };
     }
     let passwordMatch = await bcrypt.compare(userinfo.oldPassword, user.password);
     if (!passwordMatch) {
-        return { error: 'Old password does not match!' }
+        return { error: 'Old password does not match!' };
+    }
+    passwordMatch = await bcrypt.compare(userinfo.newPassword, user.password);
+    if (passwordMatch) {
+        return { error: 'New password must not be the same as old password' };
     }
 
     let newPassword = await bcrypt.hash(userinfo.newPassword, 14);
@@ -69,11 +80,21 @@ async function updatePassword(userinfo) {
     return { message: 'Password updated' };
 }
 
+/**
+ * Converts a text string to a Base64 encoded string
+ * @param {String} bytes A text string to convert to Base64
+ * @returns A Base64 encoded string
+ */
 function bytesToBase64(bytes) {
     const binString = String.fromCodePoint(...bytes);
     return btoa(binString);
 }
 
+/**
+ * Convets a string from Base64 to plain text
+ * @param {String} bytes A string which is encoded in Base64
+ * @returns A Decoded string from Base64
+ */
 function bytesFromBase64(bytes) {
     const string = new TextEncoder().encode(bytes);
     const binString = String.fromCodePoint(...string);

@@ -46,6 +46,7 @@ function usersReducer(state, action) {
     //Updates a single user
     case (usersActionTypes.UPDATE_USER): {
       // COMMENT: action object = { type: "UPDATE_USER", payload: { newUser }, context: context for THIS reducer function}
+      console.log('action.payload', action.payload);
       saveUsers(action.payload, action.context);
       const newUser = state.find(user => user.id === action.payload.id);
       newUser.name = action.payload.name;

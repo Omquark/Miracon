@@ -32,9 +32,13 @@ export async function effectCommand(commandName) {
         method: 'PUT'
       });
     data = await response.json();
+    if (data?.error?.code) {
+      data = { error: data.error.code }
+    }
   } catch (err) {
     console.log(err);
     data = { error: 'Failed to access /console on PUT!' };
   }
+  console.log('data', data);
   return data;
 }

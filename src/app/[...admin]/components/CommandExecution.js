@@ -70,11 +70,18 @@ export default function CommandExecution() {
     return body;
   }
 
-  const executeCommand = (name) => {
+  const hideModal = () => {
+    // document.getElementById('command-form')?.childNodes.forEach(c => c?.remove());
+    setModalShown(false);
+  }
+
+  const executeCommand = (name, checkForm = false) => {
     const params = [];
     const form = document.getElementById('command-form')?.elements;
-    if (Array.isArray(form)) {
+    console.log('form', form);
+    if (form && checkForm) {
       Array.from(form).filter(elem => elem.nodeName !== 'BUTTON').forEach(elem => {
+        if (!elem) return;
         if (elem.type === 'checkbox') {
           if (elem.checked)
             params.push(elem.id);
@@ -84,7 +91,7 @@ export default function CommandExecution() {
       });
     }
 
-    const commandString = name.concat(' ', params.join(' '));
+    const commandString = name.concat(' ', params?.join(' ')).trim();
     callCommand(commandString);
   }
 
@@ -98,6 +105,7 @@ export default function CommandExecution() {
     if (optElems?.length > 0) body.push(optElems);
     console.log('body', body);
     if (body.length === 0) {
+      console.log('body.length === 0 command', command)
       executeCommand(command.name);
       return;
     }
@@ -106,13 +114,13 @@ export default function CommandExecution() {
       <>
         <Button
           className='mx-2 my-2 '
-          onClick={() => executeCommand(command.name)}
+          onClick={() => executeCommand(command.name, true)}
           id='save-user'
           type='submit'
           enabled={true} >Execute</Button>
         <Button
           className='mx-2 my-2 '
-          onClick={() => setModalShown(false)}
+          onClick={() => hideModal()}
           id='cancel-user'
           type='button'
           enabled={true} >Cancel</Button>
@@ -131,16 +139,19 @@ export default function CommandExecution() {
   }
 
   const callCommand = async (command) => {
+    console.log('command', command);
     const message = await effectCommand(command);
-    toast(message.message);
+    console.log('message', message);
+    toast(message.message ? message.message : `Error: ${message.error}`);
+    setModalShown(false);
   }
 
   return (
-    <div className='flex'>
+    <div className='flex flex-wrap'>
       <Modal
         id='console-modal'
         show={modalShown}
-        setShow={setModalShown}
+        setShow={hideModal}
         header={`Parameters for ${modalHeader}`}
         footer={footerButtons}
         static={true} >

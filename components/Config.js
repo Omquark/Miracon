@@ -34,6 +34,10 @@ const DEFAULT_CONFIG = {
 
 const Config = { ...DEFAULT_CONFIG, init: false }
 
+/**
+ * Retrieves the config as it was loaded, or throws if the config is not initialized
+ * @returns The config as it currently is, or throws an error if the config is not initialized
+ */
 function getConfig() {
     if (!Config.init) {
         throw new Error('Config was attempted to be accessed before initialization. Call the init function before calling getConfig.');
@@ -45,6 +49,12 @@ const HiddenConfig = {
 
 }
 
+
+/**
+ * Initializes the config from the config.props file
+ * @param {boolean} reload If to reload the config file
+ * @throws An error if the config cannot be parsed or a required parameter is not defined.
+ */
 function init(reload) {
 
     if (Config.init && !reload) return Config;
