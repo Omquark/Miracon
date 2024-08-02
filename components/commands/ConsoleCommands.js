@@ -3,6 +3,9 @@ const { addConsoleCommands } = require("../rbac/ConsoleCommand");
 const { getRoles } = require("../rbac/Role");
 const { ConsoleCommands } = require("./ConsoleCmdDef");
 
+/**
+ * Initalizes the console commands data within the DB
+ */
 async function InitConsoleCommands() {
   logEvent(LogLevel.INFO, `Initializeing the console commands for execution within RCON. This will remove any current console command relationships.`);
   logEvent(LogLevel.INFO, `Creating the commands with defaults to the default Minecraft command levels.`);

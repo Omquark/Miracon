@@ -13,3 +13,10 @@ Implemented command security, validates user roles before allowing commands with
 Commands are also stored in the db, READ_ROLES command has been implemented
 Commands can be shown on the front end, cannot be updated yet.
 COnsole commands can be executed form the GUI, but has no security features yet.
+
+Known issues:
+Currently, password cannot be reset, this is not a bug, but not implemented.
+No information can be added or removed yet.
+Edits can be completed with Roles and Groups. Edits to Users will not save edits to groups.
+Edits to commands work as well, but may not work for groups - This with the users is a common issue, fixing one should fix the other.
+There is an issue which the login button does not work. Refreshing fixes this issue.

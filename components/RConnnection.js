@@ -61,7 +61,7 @@ class RConnection {
 
 
             this.socket.on('error', (err) => {
-                logError(`There was an error with th eRCON connection: ${JSON.stringify(err)}`);
+                logError(`There was an error with the RCON connection: ${JSON.stringify(err)}`);
                 return reject(err);
             })
 

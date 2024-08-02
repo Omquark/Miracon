@@ -47,17 +47,19 @@ export default function User() {
             if (foundRole) {
                 selected = true;
             }
-            selectedRoles[role.name] = selected;
+            selectedRoles[`${role.name}`] = selected;
         });
 
         adminGroups.forEach(group => {
             let selected = false;
             let foundGroup = user.groups.find(ugroup => {
-                return ugroup = group.id;
+                return ugroup === group.id;
             })
 
-            if (foundGroup) selected = true;
-            selectedGroups[group.name] = selected;
+            if (foundGroup) {
+                selected = true;
+            }
+            selectedGroups[`${group.name}`] = selected;
         })
 
         const message = (
@@ -104,11 +106,6 @@ export default function User() {
                     id='UserGroups'
                     values={selectedGroups}
                 />
-                <CheckBox
-                    className=''
-                    id='TestCheck'
-                    placeholder='Checkbox Label'
-                />
             </form>
         )
 
@@ -118,7 +115,7 @@ export default function User() {
     }
 
     const handleFormChange = (event) => {
-        console.log('Hello from form change!');
+        console.log('Hello from form change placeholder!');
     }
 
     const SaveUser = async () => {
@@ -136,6 +133,7 @@ export default function User() {
 
         const saveButton = document.getElementById('save-user');
         const rolesSelection = document.getElementById('UserRoles');
+        const groupsSelection = document.getElementById('UserGroups');
 
         saveButton.innerHTML = 'Loading'
         saveButton.disabled = true;
@@ -155,10 +153,25 @@ export default function User() {
                 }
             });
             return match;
-        })
-            .map(adminRole => adminRole.id);
+        }).map(adminRole => adminRole.id);
+
+        const groupNames = Array.from(groupsSelection.getElementsByTagName('input'))
+            .filter(elem => elem.type === 'checkbox')
+            .filter(elem => elem.checked)
+            .map(elem => elem.id.split('-')[1]);
+
+        const newGroups = adminGroups.filter(adminGroup => {
+            let match = false;
+            groupNames.forEach(groupName => {
+                if(groupName === adminGroup.name){
+                    match = true;
+                }
+            });
+            return match;
+        }).map(adminGroup => adminGroup.id);
 
         changingUser.roles = newRoles;
+        changingUser.groups = newGroups;
 
         dispatchAdminUsers({ type: usersActionTypes.UPDATE_USER, payload: changingUser, context: dispatchAdminUsers });
 

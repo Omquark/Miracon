@@ -34,13 +34,18 @@ export default function RootLayout({ children }) {
     testDarkMode.current = !testDarkMode.current;
   }
 
+  const setNewUserInfo = (newInfo) => {
+    sessionStorage.setItem('changePassword', newInfo.changePassword)
+    setUserInfo(newInfo);
+  }
+
   useEffect(() => {
     setPrefs(prefRef.current);
   }, [prefs]);
 
   return (
     <UserPrefContext.Provider value={{ prefs: prefs, setPrefs: setUserPrefs }}>
-      <UserInfoContext.Provider value={{ userInfo: userInfo, setUserInfo: setUserInfo }}>
+      <UserInfoContext.Provider value={{ userInfo: userInfo, setUserInfo: setNewUserInfo }}>
         <html className={`${prefs.darkMode ? 'dark' : ''}`} lang="en">
           <head className='min-h-screen'>
           </head>

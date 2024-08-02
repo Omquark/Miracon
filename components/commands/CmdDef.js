@@ -1,7 +1,6 @@
 //Default, reaquired commands. These commands are required by Miracon for basic access and cannot be removed.
 //Changing this data can result in Miracon not working as aexpected
 
-
 const Command =
 {
   "name": "DEFAULT_COMMAND",

@@ -5,6 +5,12 @@ const { addRoles, getRoles } = require('../rbac/Role');
 const { getUsers, updateUsers } = require('../rbac/User');
 const { addCommands, getCommands } = require('../rbac/Command');
 
+
+/**
+ * Initiliazes the commands for the minecraft server. This will remove any related data currently in the MongoDB.
+ * All roles added here will need to be flagged so they cannot be removed.
+ * @returns undefined
+ */
 async function InitCommands() {
   logEvent(LogLevel.INFO, 'Initializing the command roles database! This will remove any existing command role relationships.');
   logEvent(LogLevel.INFO, 'Creating roles to assign to commands.');
@@ -13,7 +19,6 @@ async function InitCommands() {
 
   //Create a role for each command listed in the comDef object. Name them with the same name for the hell of it(simplicity)
   for (command of cmdDef.Commands) {
-    // cmdDef.Commands.forEach(async command => {
     logEvent(LogLevel.DEBUG, `Adding role for command ${command.name}`);
     await addRoles({ name: command.name });
     const addedRole = await getRoles({ name: command.name });
@@ -28,7 +33,6 @@ async function InitCommands() {
     logEvent(LogLevel.INFO, `Role ${addedRole[0].name} has been bound to command ${command.name}.`);
     await addCommands(command);
   }
-  // });
 
   logEvent(LogLevel.INFO, 'Creating group for admin access to commands');
   await addGroups(commandAdminGroup);
@@ -95,7 +99,7 @@ function CheckAuthorization(checkRoles, validateCmd) {
  * 
  * @param {string} name The name of the command to execute to get
  * @param {object} user The user, containing at least the user name or id
- * @returns 
+ * @returns Either the command, or an object { error: "error message" }
  */
 async function getCommand(name, user,) {
   if (!name) {
