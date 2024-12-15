@@ -23,19 +23,25 @@ export default function CommandExecution() {
     setConsoleCommandsState();
   }, []);
 
-
+  /**
+   * Creates the elements for the form to offer the user required and optional elements
+   * @param {Array} elems An array of parameters for the command
+   * @param {boolean} required If this element is required. Used primarily to set a textbox red when it is required (Not yet working)
+   * @returns The body to be used directly in the modal
+   */
   const createElements = (elems, required) => {
     if (elems.length === 0) return undefined;
     const body = [];
-    elems.forEach((param) => {
+    elems.forEach(async (param) => {
       if (!param.type) return;
       let id = `${param.name}`;
+      console.log('param', param);
       switch (param.type.toUpperCase()) {
         case ('STRING'): {
           body.push((
             <div key={id}>
               <TextBox
-                className={required ? 'bg-red-300' : ''}
+                className={required ? ' bg-red-300 ' : ''}
                 type='text'
                 id={id}
                 placeholder={param.name} />
@@ -43,14 +49,21 @@ export default function CommandExecution() {
           ));
           break;
         }
+        //Handles similar, but has a slight difference how the selections are populated
+        case ('PLAYER'):
         case ('ENUM'): {
+          console.log('param.type.toUpperCase()', param.type.toUpperCase());
           body.push((
             <div key={id}>
               <Selection
                 className=''
                 placeholder={param.name}
                 id={id}
-                values={param.values} />
+                values={
+                  param.type.toUpperCase() === 'ENUM' ?
+                    param.values :
+                    await listPlayers()
+                } />
             </div>
           ));
           break;
@@ -70,21 +83,41 @@ export default function CommandExecution() {
     return body;
   }
 
+  const listPlayers = async () => {
+    const listResponse = await effectCommand('list');
+    console.log('listResponse', listResponse);
+    //String looks as There are 1 of max of 20 players online: player1, player2
+    //we can assume player names are alpha-numeric with underscores
+    //Split and use the second of the array, this is the raw player list
+    const rawList = listResponse.message.split(':')[1];
+    console.log('rawList', rawList);
+    //Now split by commas
+    const playerList = rawList.split(',').map(player => player.trim());
+    console.log('playerList', playerList);
+    return playerList;
+    // return ['player', 'player2'];
+    // console.log(listResponse);
+  }
+
+  const executeSimpleCommand = (name) => {
+    callCommand(name);
+  }
+
   const executeCommand = (name) => {
     const params = [];
-    const form = document.getElementById('command-form')?.elements;
-    if (Array.isArray(form)) {
-      Array.from(form).filter(elem => elem.nodeName !== 'BUTTON').forEach(elem => {
-        if (elem.type === 'checkbox') {
-          if (elem.checked)
-            params.push(elem.id);
-        } else {
-          params.push(elem.value);
-        }
-      });
-    }
+    const form = document.getElementById('command-form');
+    const elements = form?.elements;
+    Array.from(elements).filter(elem => elem.nodeName !== 'BUTTON' && !elem.hidden).forEach(elem => {
+      if (elem.type === 'checkbox') {
+        if (elem.checked)
+          params.push(elem.id);
+      } else {
+        params.push(elem.value);
+      }
+    });
 
     const commandString = name.concat(' ', params.join(' '));
+    setModalShown(false);
     callCommand(commandString);
   }
 
@@ -96,9 +129,9 @@ export default function CommandExecution() {
     if (reqElems?.length > 0) body.push(reqElems);
     const optElems = createElements(command.optional, false);
     if (optElems?.length > 0) body.push(optElems);
-    console.log('body', body);
     if (body.length === 0) {
-      executeCommand(command.name);
+      console.log('Executing simple command');
+      executeSimpleCommand(command.name);
       return;
     }
 
@@ -131,6 +164,7 @@ export default function CommandExecution() {
   }
 
   const callCommand = async (command) => {
+    console.log('calling command', command);
     const message = await effectCommand(command);
     toast(message.message);
   }

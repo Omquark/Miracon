@@ -25,6 +25,15 @@ export default function Role() {
         }
     }, [dispatchAdminRoles]);
 
+    const showCreateRoleModal = () => {
+        let role = { name: "", id: undefined };
+
+        document.getElementById('save-role').hidden = true;
+        document.getElementById('create-role').hidden = false;
+
+        showRoleModal(role);
+    }
+
     const showRoleModal = (role) => {
         const message = (
             <>
@@ -51,7 +60,7 @@ export default function Role() {
         setModalHeader(role.name);
     }
 
-    const SaveRole = async () => {
+    const SaveRole = async (update = true) => {
         let savingRoleID;
         try {
             savingRoleID = document.getElementById('RoleID').value;
@@ -71,22 +80,31 @@ export default function Role() {
         changingRole.name = document.getElementById('RoleName').value;
         console.log('changingRole', changingRole);
 
-        dispatchAdminRoles({ type: rolesActionTypes.UPDATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
+        dispatchAdminRoles({ type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.ADD_ROLE, payload: changingRole, context: dispatchAdminRoles });
 
         saveButton.innerHTML = 'Save'
         saveButton.disabled = false;
 
         setModalShown(false);
+
+        document.getElementById('save-role').hidden = false;
+        document.getElementById('create-role').hidden = true;
     }
 
     const footerButtons = (
         <>
             <Button
                 className='mx-2 my-2 '
-                onClick={SaveRole}
+                onClick={() => SaveRole(false)}
                 id='save-role'
                 type='submit'
                 enabled={true} >Save</Button>
+            <Button
+                className='mx-2 my-2 hidden '
+                onClick={() => SaveRole(true)}
+                id='create-role'
+                type='submit'
+                enabled={true} >Create</Button>
             <Button
                 className='mx-2 my-2 '
                 onClick={() => setModalShown(false)}
@@ -174,6 +192,9 @@ export default function Role() {
                     }
                 </tbody>
             </table>
+            <Button onClick={() => showCreateRoleModal()}>
+                Create Role
+            </Button>
         </div>
     )
 }

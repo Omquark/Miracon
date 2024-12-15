@@ -1,15 +1,39 @@
 Default passwords for creates users = Mi1n3e&Cr4\tf$
 
 Installation steps - Docker
-Java is pre-installed - validate, install if needed
 Install nodejs
 copy temp to install directory
 copy config to config install directory
 
+To build docker: docker build -t miracon .
+To run: 
+docker run --mount type=bind,src=C:/Users/Cliff/Desktop/minecraft-server,dst=/opt/minecraft -p 3011:3011 -p 25576:25575 miracon
+You can also run from the Docker desktop, but need to set a host path and ports.
+To admin into docker image: 
 
 
 Locked up endpoints with security, user must be logged in to access most endpoints.
 Implemented command security, validates user roles before allowing commands with auditing.
 Commands are also stored in the db, READ_ROLES command has been implemented
 Commands can be shown on the front end, cannot be updated yet.
-COnsole commands can be executed form the GUI, but has no security features yet.
+Console commands can be executed form the GUI, but has no security features yet.
+
+What Docker does
+  Setup with nodejs
+  Setup ENV
+  Copy index.js, src/, components/, config/, scripts/ to image
+  Expose port for app -> Uses env
+  Expose minecraft installation to the image (Must include ops.json, server.properties,
+    banned-ip.json, banned-player.json, whitelist.json) into /opt/minecraft
+  Run install script
+
+What miracon-install does
+  Must be run as root
+  install mongodb
+  create user for miracon access -> miracon
+  create group for miracon access
+  compile src code to production version (next build)
+  removes any old install if they exist
+  copy config/ to /etc/opt/miracon
+  copy .next/, index.js, components, scripts/ to /opt/miracon
+  create logs and audit folder

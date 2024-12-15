@@ -8,11 +8,12 @@ const http = require('http');
 const nextReq = require('next');
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = nextReq({ dev });
+// const nextApp = nextReq();
 const handle = nextApp.getRequestHandler();
 
-const { getConfig, init } = require('./components/Config');
+const { getConfig, init, HiddenConfig } = require('./components/Config');
 const { logEvent, LogLevel, logError } = require('./components/Log');
-const { checkAndLoginUser, bytesFromBase64, updatePassword } = require('./components/session/UserLogin');
+const { checkAndLoginUser, updatePassword } = require('./components/session/UserLogin');
 const { LoginSessionOpts } = require('./components/session/LoginSession');
 const { getRoles, updateRoles } = require('./components/rbac/Role');
 const { getGroups, updateGroups, resolveRoles } = require('./components/rbac/Group');
@@ -26,21 +27,25 @@ const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsernam
 const { InitConsoleCommands } = require('./components/commands/ConsoleCommands');
 const { getConsoleCommands } = require('./components/rbac/ConsoleCommand');
 const { RConnection } = require('./components/RConnnection');
+const { bytesFromBase64 } = require('./components/utility/Utility');
 
 nextApp.prepare().then(async () => {
 
     init();
-    const rcon = new RConnection({
-        password: 'password',
-        serverAddress: 'minecraft',
-        serverPort: 25575
-    });
 
     const Config = getConfig();
 
     const bodyParserJsonOptions = {
         limit: '1kb',
     }
+
+    logEvent(LogLevel.DEBUG, `Server password: ${HiddenConfig.minecraftServer.password}`);
+
+    const rcon = new RConnection({
+        password: HiddenConfig.minecraftServer.password,
+        serverAddress: Config.minecraftServer.address,
+        serverPort: Config.minecraftServer.port
+    });
 
     app.use(bodyParser.json(bodyParserJsonOptions));
     app.use(session(LoginSessionOpts));
@@ -121,13 +126,14 @@ nextApp.prepare().then(async () => {
         res.status(message.error ? 400 : 200).send(message)
     });
 
-    app.all(/!\//, async (req, res, next) => {
-        // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
+    app.all(/^(?!\/$|\/_next).*$/, async (req, res, next) => {
+    // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
         const userInfo = req.session.userInfo;
 
         logEvent(LogLevel.DEBUG, `process.env.NODE_ENV = ${process.env.NODE_ENV}`);
+        logEvent(LogLevel.DEBUG, `userInfo = ${JSON.stringify(userInfo)}`);
 
-        if (!userInfo) {
+        if (!userInfo?.name) {
             res.status(401).send({ error: 'User is not logged in' });
             return;
         }
