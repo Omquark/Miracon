@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useReducer } from "react"
-import { pullRoles, saveRoles } from "../../api/roles";
+import { pullRoles, mutateRoles } from "../../api/roles";
 
 const initialRolesState = [{ name: '', id: '' }]
 
@@ -33,7 +33,7 @@ function rolesReducer(state, action) {
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
     case (rolesActionTypes.ADD_ROLE): {
-      console.log('adding roles placeholder');
+      mutateRoles(action.payload, action.context, 'POST');
       return state;
     }
     //Retrieves and updates all roles
@@ -44,7 +44,7 @@ function rolesReducer(state, action) {
     //Updates a single role
     case (rolesActionTypes.UPDATE_ROLE): {
       // COMMENT: action object = { type: "UPDATE_ROLE", payload: { newRole }, context: context for THIS reducer function}
-      saveRoles(action.payload, action.context, action.type.toUpperCase());
+      mutateRoles(action.payload, action.context, 'PUT');
       const newRole = state.find(role => role.id === action.payload.id);
       newRole.name = action.payload.name;
       const newRoles = [...state];
@@ -52,17 +52,22 @@ function rolesReducer(state, action) {
     }
     //Removes a single role
     case (rolesActionTypes.REMOVE_ROLE): {
-      console.log('removing roles')
-      return state;
+      mutateRoles(action.payload, action.context, 'DELETE');
+      const removedRoleIndex = state.findIndex(role => role.id === action.payload.id || role.name === action.payload.name);
+      const newState = [...state];
+      newState.splice(removedRoleIndex, 1);
+      return newState;
     }
     //Used to show the response to the user
     case (rolesActionTypes.RESPONSE_ROLE): {
+      console.log('action', action);
       if (action.payload.error) {
         alert(`There was an error while updating the role!\nDetails: ${action.payload.error}`);
         location.reload();
         return state;
       }
-      return state;
+      //Checks if the array already contains the role, if not, add it to the array
+      return state.find(role => role.name === action.payload[0].name) ? [...state] : [...state, ...action.payload];
     }
     //Updates the roles with the payload sent. Used with pullRoles, this is called by the API specifically
     case (rolesActionTypes.REFRESH_ROLE): {

@@ -11,7 +11,8 @@ export default function TextBox(props) {
 
     useEffect(() => {
         const elem = document.getElementById(id);
-        if (value) elem.value = value;
+        if (value !== undefined) elem.value = value;
+        // elem.value = value;
     }, [id, value])
 
     const detectChange = (event) => {
@@ -45,8 +46,8 @@ export default function TextBox(props) {
                 className={
                     'absolute duration-300 whitespace-nowrap ' +
                     'hover:cursor-text px-0.5 scale-75 mx-2.5 ' +
-                    // 'bg-opacity-100 bg-white dark:bg-black ' +
-                    'bg-opacity-100 bg-white peer-placeholder-shown:bg-inherit peer-focus:bg-white ' +
+                    'bg-opacity-100 bg-white dark:bg-black peer-placeholder-shown:bg-inherit ' +
+                    'peer-focus:bg-white dark:peer-focus:bg-black ' +
                     'transform left-0 top-0 ' +
                     'peer-placeholder-shown:top-4 peer-placeholder-shown:scale-100 ' +
                     'peer-focus:scale-75 peer-focus:top-0 '

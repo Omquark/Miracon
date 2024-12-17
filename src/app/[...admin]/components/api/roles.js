@@ -29,11 +29,17 @@ export async function pullRoles(dispatch) {
     dispatch({ type: rolesActionTypes.REFRESH_ROLE, payload: data });
 }
 
-export async function saveRoles(roles, dispatch, action) {
+export async function mutateRoles(roles, dispatch, verb) {
     let response;
     let data;
 
-    const payload = { data: roles, action: action }
+    if (verb.toUpperCase() !== 'POST' && verb.toUpperCase() !== 'PUT' && verb.toUpperCase() !== 'DELETE') {
+        data = { error: 'A valid verb was not supplied when attempting to mutate a role! Supply either POST, PUT, or DELETE for action.' }
+        dispatch({ type: rolesActionTypes.RESPONSE_ROLE, payload: data });
+        return;
+    }
+
+    const payload = { data: roles }
 
     try {
         response = await fetch(`http://${location.host}/roles`,
@@ -42,13 +48,13 @@ export async function saveRoles(roles, dispatch, action) {
                 headers: {
                     'content-type': 'application/json',
                 },
-                method: 'POST',
+                method: verb
             });
 
         data = await response.json();
     } catch (err) {
         console.log(err);
-        data = { error: 'Failed to access /roles on POST!' }
+        data = { error: `Failed to access /roles on ${verb}!` }
     }
 
     dispatch({ type: rolesActionTypes.RESPONSE_ROLE, payload: data });

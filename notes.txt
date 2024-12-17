@@ -37,3 +37,14 @@ What miracon-install does
   copy config/ to /etc/opt/miracon
   copy .next/, index.js, components, scripts/ to /opt/miracon
   create logs and audit folder
+
+
+TODO:
+  Users needs setup with finished CRUD functions
+  Setup file to init the DB instead of env variable
+  Add a way to have console commands to be edited with new roles, blacklist, etc
+  Setup console commands so commands can only be seen by roles allowed to use command
+  Whitelist and banned players/IP management
+  Edit server.properties via website
+  Enable ability to start server from Miracon?
+  Label for MultiSelection overlaps other menus selection when trying to select, fix it

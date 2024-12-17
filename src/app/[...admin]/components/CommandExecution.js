@@ -29,13 +29,14 @@ export default function CommandExecution() {
    * @param {boolean} required If this element is required. Used primarily to set a textbox red when it is required (Not yet working)
    * @returns The body to be used directly in the modal
    */
-  const createElements = (elems, required) => {
+  const createElements = async (elems, required) => {
     if (elems.length === 0) return undefined;
+    let param;
     const body = [];
-    elems.forEach(async (param) => {
+    for (param of elems) {
+      // elems.forEach(async (param) => {
       if (!param.type) return;
       let id = `${param.name}`;
-      console.log('param', param);
       switch (param.type.toUpperCase()) {
         case ('STRING'): {
           body.push((
@@ -51,8 +52,7 @@ export default function CommandExecution() {
         }
         //Handles similar, but has a slight difference how the selections are populated
         case ('PLAYER'):
-        case ('ENUM'): {
-          console.log('param.type.toUpperCase()', param.type.toUpperCase());
+        case ('ENUM'):
           body.push((
             <div key={id}>
               <Selection
@@ -67,7 +67,6 @@ export default function CommandExecution() {
             </div>
           ));
           break;
-        }
         case ('BOOLEAN'): {
           body.push((
             <div key={id}>
@@ -78,25 +77,20 @@ export default function CommandExecution() {
           ))
         }
       }
-    });
-
+    }
     return body;
   }
 
   const listPlayers = async () => {
     const listResponse = await effectCommand('list');
-    console.log('listResponse', listResponse);
     //String looks as There are 1 of max of 20 players online: player1, player2
     //we can assume player names are alpha-numeric with underscores
     //Split and use the second of the array, this is the raw player list
     const rawList = listResponse.message.split(':')[1];
-    console.log('rawList', rawList);
     //Now split by commas
     const playerList = rawList.split(',').map(player => player.trim());
-    console.log('playerList', playerList);
+    if (playerList[0] === "") playerList[0] = "No players found";
     return playerList;
-    // return ['player', 'player2'];
-    // console.log(listResponse);
   }
 
   const executeSimpleCommand = (name) => {
@@ -125,12 +119,12 @@ export default function CommandExecution() {
     setModalHeader(command.name);
 
     const body = [];
-    const reqElems = createElements(command.required, true);
+    const reqElems = await createElements(command.required, true);
     if (reqElems?.length > 0) body.push(reqElems);
-    const optElems = createElements(command.optional, false);
+    const optElems = await createElements(command.optional, false);
     if (optElems?.length > 0) body.push(optElems);
     if (body.length === 0) {
-      console.log('Executing simple command');
+      console.log(`Executing simple command ${command.name}`);
       executeSimpleCommand(command.name);
       return;
     }
@@ -164,13 +158,12 @@ export default function CommandExecution() {
   }
 
   const callCommand = async (command) => {
-    console.log('calling command', command);
     const message = await effectCommand(command);
     toast(message.message);
   }
 
   return (
-    <div className='flex'>
+    <div className='flex flex-wrap mt-5 '>
       <Modal
         id='console-modal'
         show={modalShown}
@@ -187,7 +180,7 @@ export default function CommandExecution() {
             .map(command =>
               <div key={command.id}>
                 <Button
-                  className='ms-4 my-5 mt-5 '
+                  className='ms-4 my-5 '
                   onClick={() => prepareModal(command)}
                   id={`effect-${command.name}`}
                   type='button'

@@ -15,8 +15,8 @@ const { getConfig, init, HiddenConfig } = require('./components/Config');
 const { logEvent, LogLevel, logError } = require('./components/Log');
 const { checkAndLoginUser, updatePassword } = require('./components/session/UserLogin');
 const { LoginSessionOpts } = require('./components/session/LoginSession');
-const { getRoles, updateRoles } = require('./components/rbac/Role');
-const { getGroups, updateGroups, resolveRoles } = require('./components/rbac/Group');
+const { getRoles, updateRoles, addRoles, removeRoles } = require('./components/rbac/Role');
+const { getGroups, updateGroups, addGroups, resolveRoles, removeGroups } = require('./components/rbac/Group');
 const { getUsers, updateUsers } = require('./components/rbac/User');
 const { InitUsers } = require('./components/rbac/Init');
 const { InitCommands, getCommand } = require('./components/commands/Commands');
@@ -107,6 +107,7 @@ nextApp.prepare().then(async () => {
             return;
         }
 
+        //TODO: Blacklist here
         if (!rawBody?.userinfo?.username || !isValidUsername(rawBody.userinfo.username)) {
             logEvent(LogLevel.AUDIT, 'A user attempted to change a password, but did not have a session or userinfo, user has been logged out and the session destroyed.');
             logEvent(LogLevel.AUDIT, 'I am also blacklisting this IP for 15 minutes to prevent any further attempts');
@@ -127,7 +128,7 @@ nextApp.prepare().then(async () => {
     });
 
     app.all(/^(?!\/$|\/_next).*$/, async (req, res, next) => {
-    // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
+        // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
         const userInfo = req.session.userInfo;
 
         logEvent(LogLevel.DEBUG, `process.env.NODE_ENV = ${process.env.NODE_ENV}`);
@@ -200,64 +201,160 @@ nextApp.prepare().then(async () => {
         res.status(200).send({ message: response });
     });
 
-    app.get('/roles', async (req, res) => {
-        const foundCmd = await getCommand('READ_ROLE', req.session.userInfo);
-
+    const checkCommand = async (commandName, userInfo) => {
+        const foundCmd = await getCommand(commandName, userInfo);
         if (foundCmd.error) {
-            logEvent(LogLevel.WARN, 'There was an error attempting to read the roles!');
-            res.status(403).send({ error: foundCmd.error });
+            logEvent(LogLevel.WARN, `There was an error attempting to access command ${commandName}`);
+            return { error: foundCmd.error };
+        }
+
+        return;
+    }
+
+    app.get('/roles', async (req, res) => {
+        const commandError = await checkCommand('READ_ROLE', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
             return;
         }
         res.status(200).send(JSON.stringify(await getRoles()));
     });
 
-    app.post('/roles', validateNameId, async (req, res) => {
+    app.put('/roles', validateNameId, async (req, res) => {
         const rawBody = req.body;
 
-        const newRoles = {};
         let updated;
-        //TODO: This needs fixed. We can expect to not receive an array from the front end
-        //In turn, the update also needs fixed, the old variable should only be id
-        //At some point, this will need updated to allow for all CRUD actions!
-        if (!Array.isArray(rawBody)) {
-            logEvent(LogLevel.DEBUG, `rawBody is ${JSON.stringify(rawBody)}`)
-            if ((rawBody.data.name === undefined || rawBody.data.id === undefined)) {
-                logError('A Role was attempted to be updated without an ID! This ID is required to update any roles!');
-                res.status(400).send({ error: 'No ID provided with role! I don\'t know which one to upate without an ID!' });
-                return;
-            }
-            newRoles.name = rawBody.data.name;
-            newRoles.id = rawBody.data.id;
+
+        const commandError = await checkCommand('UPDATE_ROLE', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
         }
 
-        updated = await updateRoles({ id: newRoles.id }, newRoles);
+        if ((rawBody.data.name === undefined || rawBody.data.id === undefined)) {
+            logError('A Role was attempted to be updated without an ID! This ID is required to update any roles!');
+            res.status(400).send({ error: 'No ID provided with role! I don\'t know which one to upate without an ID!' });
+            return;
+        }
 
+        updated = await updateRoles({ id: rawBody.data.id }, { name: rawBody.data.name });
         res.status(200).send(updated);
     });
 
+    app.post('/roles', validateNameId, async (req, res) => {
+        const rawBody = req.body;
+
+        const commandError = await checkCommand('ADD_ROLE', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
+        }
+
+        if (rawBody.data === undefined || rawBody.data.name === undefined) {
+            logError('A role was attempted to be added without a name! A name must be specified, ID\'s are ignored')
+            res.status(400).send({ error: 'No name was specified for the role! Please name the role and try again, ID\'s are ignored' });
+            return;
+        }
+
+        const newRole = await addRoles({ name: rawBody.data.name })
+        res.status(200).send(newRole);
+    });
+
+    app.delete('/roles', validateNameId, async (req, res) => {
+        const rawBody = req.body;
+
+        const commandError = await checkCommand('DELETE_ROLE', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
+        }
+
+        if (rawBody.data === undefined || (rawBody.data.name === undefined && rawBody.data.id === undefined)) {
+            logError('A role was attempted to be deleted, but must contain either a role ID or a role name!');
+            res.status(400).send({ error: 'No ID or name supplied to remove the role! Specify which role with either an ID or name and try again.' });
+            return;
+        }
+
+        const removedRole = await removeRoles({ name: rawBody.data.name, id: rawBody.data.id });
+        res.status(200).send(removedRole);
+    });
+
     app.get('/groups', async (req, res) => {
+
+        const commandError = await checkCommand('READ_GROUP', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
+        }
+
         const pulledGroups = await getGroups()
         res.status(200).send(JSON.stringify(pulledGroups));
     });
 
-    app.post('/groups', validateNameId, (req, res) => {
+    app.put('/groups', validateNameId, async (req, res) => {
         const rawBody = req.body;
-        const newGroups = [];
+        const newGroup = {};
         let updated;
 
-        logEvent(LogLevel.DEBUG, 'Hitting endpoint@/admin/groups')
-
-        if (!Array.isArray(rawBody)) {
-            if ((rawBody.name === undefined && rawBody.id === undefined)) {
-                logError('A Group was attempted to be updated is missing an name and ID! At least one of these values must be provided!');
-                res.status(400).send({ error: 'No ID or name provided with group! I don\'t know which one to upate without an ID or name!' });
-                return;
-            }
-            newGroups.push({ name: rawBody.name, roles: rawBody.roles, id: rawBody.id });
+        const commandError = await checkCommand('UPDATE_GROUP', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
         }
 
-        updated = updateGroups(newGroups, newGroups);
+        if ((rawBody.name === undefined && rawBody.id === undefined)) {
+            logError('A Group was attempted to be updated is missing an name and ID! At least one of these values must be provided!');
+            res.status(400).send({ error: 'No ID or name provided with group! I don\'t know which one to upate without an ID or name!' });
+            return;
+        }
+
+        newGroups.push({ name: rawBody.name, roles: rawBody.roles, id: rawBody.id });
+        newGroup.name = rawBody.data.name;
+        newGroup.roles = rawBody.data.roles;
+        newGroup.id = rawBody.data.id;
+
+        updated = await updateGroups(newGroup, newGroup);
         res.status(200).send(updated);
+    });
+
+    app.post('/groups', validateNameId, async (req, res) => {
+        const rawBody = req.body;
+        let added;
+
+        const commandError = await checkCommand('CREATE_GROUP', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
+        }
+
+        if ((rawBody.name === undefined)) {
+            logError('A Group was attempted to be added is missing an name and ID! At least one of these values must be provided!');
+            res.status(400).send({ error: 'No name provided with group! Group must have a name to be added.' });
+            return;
+        }
+
+        added = await addGroups({ name: rawBody.data.name, roles: rawBody.data.roles });
+        res.status(200).send(added);
+    });
+
+    app.delete('/groups', validateNameId, async (req, res) => {
+
+        const rawBody = req.body;
+
+        const commandError = await checkCommand('DELETE_GROUP', req.session.userInfo);
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError.error });
+            return;
+        }
+
+        if (rawBody.data === undefined || (rawBody.data.name === undefined && rawBody.data.id === undefined)) {
+            logError('A group was attempted to be deleted, but must contain either an ID or a name!');
+            res.status(400).send({ error: 'No ID or name supplied to remove the group! Specify which group with either an ID or name and try again.' });
+            return;
+        }
+
+        const removedGroup = await removeGroups({ name: rawBody.data.name, id: rawBody.data.id });
+        res.status(200).send(removedGroup);
     });
 
     app.get('/users', async (req, res) => {

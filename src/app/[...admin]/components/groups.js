@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useContext } from 'react';
-import { pullGroups, saveGroups } from './api/groups';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
@@ -14,6 +13,7 @@ export default function Group() {
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
+    const [sorted, setSorted] = useState({ column: 'name', ascending: true })
 
     const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
@@ -22,6 +22,19 @@ export default function Group() {
         dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
         dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
     }, [dispatchAdminGroups, dispatchAdminRoles]);
+
+    const showCreateGroupModal = () => {
+        const group = { name: '', id: '', roles: [] };
+        showGroupModal(group);
+        setModalHeader(`Create new Group`);
+        const saveButton = document.getElementById('save-group');
+        const createButton = document.getElementById('create-group');
+        const removeButton = document.getElementById('remove-group');
+
+        saveButton.hidden = true;
+        createButton.hidden = undefined;
+        removeButton.hidden = true;
+    }
 
     const showGroupModal = async (group) => {
         const selectedRoles = {};
@@ -67,10 +80,28 @@ export default function Group() {
 
         setModalMessage(message);
         setModalShown(true);
-        setModalHeader(group.name);
+        setModalHeader(`Group: ${group.name}`);
+        const saveButton = document.getElementById('save-group');
+        const createButton = document.getElementById('create-group');
+        const removeButton = document.getElementById('remove-group');
+
+        saveButton.hidden = undefined;
+        createButton.hidden = true;
+        removeButton.hidden = undefined;
     }
 
-    const SaveGroup = async () => {
+    const RemoveGroup = () => {
+        let groupID = document.getElementById('GroupID')?.value;
+        if (!groupID) {
+            console.log('The group ID is not defeined');
+            return;
+        }
+
+        dispatchAdminGroups({ type: groupsActionTypes.REMOVE_GROUP, payload: { id: groupID }, context: dispatchAdminGroups });
+        setModalShown(false);
+    }
+
+    const SaveGroup = async (updated = true) => {
         let savingGroupID;
         try {
             savingGroupID = document.getElementById('GroupID').value;
@@ -79,9 +110,11 @@ export default function Group() {
             return;
         }
 
-        const changingGroup = adminGroups.find(group => {
-            return group.id === savingGroupID;
-        });
+        const changingGroup = updated ?
+            adminGroups.find(group => {
+                return group.id === savingGroupID;
+            }) :
+            { name: '', id: '', roles: [] }
 
         const saveButton = document.getElementById('save-group');
         const rolesSelection = document.getElementById('GroupRoles');
@@ -99,17 +132,17 @@ export default function Group() {
         const newRoles = adminRoles.filter(adminRole => {
             let match = false;
             roleNames.forEach(roleName => {
-                if(roleName === adminRole.name){
+                if (roleName === adminRole.name) {
                     match = true;
                 }
             });
             return match;
         })
-        .map(adminRole => adminRole.id);
+            .map(adminRole => adminRole.id);
 
         changingGroup.roles = newRoles;
 
-        dispatchAdminGroups({ type: groupsActionTypes.UPDATE_GROUP, payload: changingGroup, context: dispatchAdminGroups });
+        dispatchAdminGroups({ type: updated ? groupsActionTypes.UPDATE_GROUP : groupsActionTypes.ADD_GROUP, payload: changingGroup, context: dispatchAdminGroups });
 
         saveButton.innerHTML = 'Save'
         saveButton.disabled = false;
@@ -121,16 +154,28 @@ export default function Group() {
         <>
             <Button
                 className='mx-2 my-2 '
-                onClick={SaveGroup}
+                onClick={() => SaveGroup(true)}
                 id='save-group'
                 type='submit'
                 enabled={true} >Save</Button>
+            <Button
+                className='mx-2 my-2 '
+                onClick={() => SaveGroup(false)}
+                id='create-group'
+                type='submit'
+                enabled={true} >Create</Button>
             <Button
                 className='mx-2 my-2 '
                 onClick={() => setModalShown(false)}
                 id='cancel-group'
                 type='button'
                 enabled={true} >Cancel</Button>
+            <Button
+                className='mx-2 my-2 '
+                onClick={() => RemoveGroup()}
+                id='remove-group'
+                type='submit'
+                enabled={true} >Delete</Button>
         </>
     )
 
@@ -140,7 +185,7 @@ export default function Group() {
                 id={'GroupModal'}
                 show={modalShown}
                 setShow={setModalShown}
-                header={`Group: ${modalHeader}`}
+                header={`${modalHeader}`}
                 footer={footerButtons}
                 static={true} >
                 {modalMessage}
@@ -171,6 +216,9 @@ export default function Group() {
                     }
                 </tbody>
             </table>
+            <Button onClick={() => showCreateGroupModal()}>
+                Create Group
+            </Button>
         </div>
     )
 }

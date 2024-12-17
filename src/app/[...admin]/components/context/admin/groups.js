@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useReducer, useContext, useEffect } from "react"
-import { pullGroups, saveGroups } from "../../api/groups";
+import { pullGroups, mutateGroups } from "../../api/groups";
 import { AdminRolesContext, rolesActionTypes } from "./roles";
 
 const initialGroupsState = [{ name: '', id: '' }]
@@ -34,7 +34,7 @@ function groupsReducer(state, action) {
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
     case (groupsActionTypes.ADD_GROUP): {
-      console.log('adding groups placeholder');
+      mutateGroups(action.payload, action.context, 'POST');
       return state;
     }
     //Retrieves and updates all groups
@@ -45,7 +45,7 @@ function groupsReducer(state, action) {
     //Updates a single group
     case (groupsActionTypes.UPDATE_GROUP): {
       // COMMENT: action object = { type: "UPDATE_GROUP", payload: { newGroup }, context: context for THIS reducer function}
-      saveGroups(action.payload, action.context);
+      mutateGroups(action.payload, action.context, 'PUT');
       const newGroup = state.find(group => group.id === action.payload.id);
       newGroup.name = action.payload.name;
       newGroup.roles = [...action.payload.roles];
@@ -54,8 +54,11 @@ function groupsReducer(state, action) {
     }
     //Removes a single group
     case (groupsActionTypes.REMOVE_GROUP): {
-      console.log('removing groups')
-      return state;
+      mutateGroups(action.payload, action.context, 'DELETE');
+      const removeGroupIndex = state.findIndex(group => group.id === action.payload.id || group.name === action.payload.name);
+      const newState = [...state];
+      newState.splice(removeGroupIndex, 1);
+      return newState;
     }
     //Used to show the response to the user
     case (groupsActionTypes.RESPONSE_GROUP): {
@@ -64,7 +67,14 @@ function groupsReducer(state, action) {
         location.reload();
         return state;
       }
-      return state;
+
+      console.log('action.payload', action.payload);
+      //return state if payload < 0 AND the payload is in the original array
+      return action.payload.length > 0 &&
+        state.find(group => group.name === action.payload[0].name) ?
+        state :
+        //otherwise add the payload to the array and return as a new state
+        [...state, ...action.payload]
     }
     //Updates the groups with the payload sent. Used with pullGroups, this is called by the API
     case (groupsActionTypes.REFRESH_GROUP): {

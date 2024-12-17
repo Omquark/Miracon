@@ -5,11 +5,14 @@
 /**
  * Defines a role to be used for RBAC
  * Used for a psuedoDB, name is considered the PK
- * @property {string} name Name of the role, must be unique and is used as the PK
+ * @property {string} name Name of the role, must be unique and is used as an index
+ * @property {string} id A UUID used as the uniquie key for this role, generated when adding the role
+ * @property {boolean} critical Defines if this role can be removed from the frtont end
  */
 const Role = {
     name: 'AdminRole',
     id: '82094693-a73c-4aa6-869f-5d812c9a9203',
+    critical: false,
 }
 
 const otherRole = {
@@ -40,6 +43,7 @@ const Group = {
  * @property {string} id A unquie ID to identify this user, by default uses a uuidv4
  * @property {boolean} active Determines if this user is active. Setting this to false effectively disables the user.
  * @property {boolean} changePassword Forces the user to update their password on the next login
+ * @property {boolean} critical Defines if the user can be removed form the front end
  */
 const User = {
     name: 'AdminUser',
@@ -51,6 +55,7 @@ const User = {
     id: '71ec725c-2c84-4930-9153-63f3a8369672',
     active: true,
     changePassword: true,
+    critical: true
 }
 
 // const Roles = [Role, otherRole];

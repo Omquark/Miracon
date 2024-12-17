@@ -15,7 +15,7 @@ async function InitCommands() {
   for (command of cmdDef.Commands) {
     // cmdDef.Commands.forEach(async command => {
     logEvent(LogLevel.DEBUG, `Adding role for command ${command.name}`);
-    await addRoles({ name: command.name });
+    await addRoles({ name: command.name, critical: true });
     const addedRole = await getRoles({ name: command.name });
     logEvent(LogLevel.DEBUG, `addedRole: ${JSON.stringify(addedRole)}`)
 
