@@ -3,7 +3,7 @@ const MemoryStore = require('memorystore')(session);
 const { v4: uuidv4 } = require('uuid');
 
 const serverName = 'miracon'; //Server Name, for the cookie
-const secret = 'miracon'; //Cookie sercret
+const secret = 'miracon'; //Cookie secret
 const maxAge = 24 * 60 * 60 * 1000; //hours * minutes * seconds  * milliseconds, max age of the cookie/session
 const cacheSize = Infinity; //Max cache size of the store. This is a memory store, so Infinity could eat up a lot of RAM, if many sessions are made.
 const checkPeriod = 24 * 60 * 60 * 1000; //How often to 'prune' sessions

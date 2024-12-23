@@ -1,5 +1,8 @@
 const { body } = require('express-validator');
 
+/**
+ * Used to build a validation for users to limit allowed characters
+ */
 const validateAndSanitizeUser = [
   body('username')
     .trim()
@@ -14,6 +17,9 @@ const validateAndSanitizeUser = [
     .escape()
 ];
 
+/**
+ * Used to validate a name and id for users. Id's are validated against UUIDv4
+ */
 const validateNameId = [
   body('name')
     .trim()
@@ -25,16 +31,32 @@ const validateNameId = [
     .escape()
 ];
 
+/**
+ * Validates a UUIDv4. 
+ * @param {String} uuid The UUID to verify
+ * @returns A boolean defining if the UUID is valid
+ */
 function isValidUUIDv4(uuid) {
   const uuid4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   return uuid4Regex.test(uuid);
 }
 
 function isValidUsername(username) {
+/**
+ * Checks if the username is valid
+ * @param {String} username The username to validate
+ * @returns A boolean defining if the name is valid
+ */
+function isValidUsername(username){
   const usernameRegex = /^[\w_]+$/
   return usernameRegex.test(username);
 }
 
+/**
+ * Checks if the password is valid
+ * @param {String} password The password to validate
+ * @returns A boolean defining if the password is valid
+ */
 function isValidPassword(password) {
   const passwordRegex = /^[\w!@#$%^&*?\\]+$/
   return passwordRegex.test(password);

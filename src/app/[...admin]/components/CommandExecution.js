@@ -133,13 +133,13 @@ export default function CommandExecution() {
       <>
         <Button
           className='mx-2 my-2 '
-          onClick={() => executeCommand(command.name)}
+          onClick={() => executeCommand(command.name, true)}
           id='save-user'
           type='submit'
           enabled={true} >Execute</Button>
         <Button
           className='mx-2 my-2 '
-          onClick={() => setModalShown(false)}
+          onClick={() => hideModal()}
           id='cancel-user'
           type='button'
           enabled={true} >Cancel</Button>
@@ -158,8 +158,11 @@ export default function CommandExecution() {
   }
 
   const callCommand = async (command) => {
+    console.log('command', command);
     const message = await effectCommand(command);
-    toast(message.message);
+    console.log('message', message);
+    toast(message.message ? message.message : `Error: ${message.error}`);
+    setModalShown(false);
   }
 
   return (
@@ -167,7 +170,7 @@ export default function CommandExecution() {
       <Modal
         id='console-modal'
         show={modalShown}
-        setShow={setModalShown}
+        setShow={hideModal}
         header={`Parameters for ${modalHeader}`}
         footer={footerButtons}
         static={true} >

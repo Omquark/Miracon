@@ -8,15 +8,13 @@ const { addRoles, getRoles } = require("./Role");
 const { addGroups } = require("./Group");
 const { initDatabase } = require("./db");
 
+/**
+ * Initilizes the users for access to Miracon. This will read from the ops.json file. If this file does not exist, this will fail.
+ */
 async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Initializing the user/roles database.');
   await initDatabase();
-
-  // logEvent(LogLevel.INFO, 'Clearing out the old roles');
-  // let oldRoles = await getRoles();
-  // removeRoles(oldRoles);
-  //removeRoles(await getRoles());
 
   logEvent(LogLevel.INFO, 'Creating the default roles to align with minecraft security levels');
   const createdRoles = [
@@ -31,7 +29,6 @@ async function InitUsers() {
   const newRoles = await getRoles(createdRoles);
 
   logEvent(LogLevel.INFO, 'Clearing out the old groups');
-  // await removeGroups(await getGroups());
 
   logEvent(LogLevel.INFO, 'Creating the new groups to align with minecraft security level');
 

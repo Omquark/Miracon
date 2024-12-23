@@ -1,3 +1,14 @@
+/**
+ * The default console command, which is used to show what is expected of a console command
+ * for required and optional, these contain an array of objects, which require a name and type
+ * The name will be shown on a Modal on the web page.
+ * The type can be either a string, enum, boolean.
+ *    A string will allow entry on the webpage.
+ *    A type of enum will need an array of values, which will allow a selection on the webpage.
+ *    A type of boolean will display a checkbox on the webpage.
+ * Some examples of what is already implemented can be seen below. This is exactly what they will be on insert of the DB.
+ */
+
 const ConsoleCommand = {
   'name': 'DEFAULT_COMMAND', //The name of the command, which is exactly how it is executed within the console
   'id': 'command id', //The id for this command, for database purposes, expects a uuidv4
@@ -116,6 +127,14 @@ const ConsoleCommands = [
     'optional': [{ name: 'Duration', type: 'string' }],
     'roles': ['Level 2'],
     'blacklistRoles': [''],
+  },
+  {
+    'name': 'msg',
+    'description': 'Whispers a character a typed message',
+    'required': [{ name: 'player', type: 'string' }, { name: 'message', type: 'string' }],
+    'optional': [],
+    'roles': ['Level 0'],
+    'blacklistedroles': [''],
   },
 ]
 

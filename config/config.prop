@@ -4,17 +4,19 @@
 # Where the Minecraft server files can be located.
 # Specifically, we need banned-ips.json, banned-player.json, ops.json, and whitelist.json
 # As long as all these file exist, nothing else is needed. You will need the live files if you want to live edit.
-MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
+# MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
+MINECRAFT_SERVER_PATH=path/to/minecraft/server
 
 # The install path of miracon
 # Defaults to /opt/miracon
-MIRACON_INSTALL_DIRECTORY=C:\opt\miracon
+# MIRACON_INSTALL_DIRECTORY=C:\opt\miracon
+MIRACON_INSTALL_DIRECTORY=miracon/install/directory
 
 # Log level for log output
 # Values can be DEBUG, INFO, WARN, and ERROR. If not defined, defaults to DEBUG. ERROR level will always be printed.
 LOG_LEVEL=DEBUG
 
-# Where to write the log files. It will be attempted to be created if it does nt exist.
+# Where to write the log files. It will be attempted to be created if it does not exist.
 # If the file cannot ultimately be created, log entries will be printed to the installation directory.
 LOG_PATH=/var/miracon
 
@@ -33,7 +35,7 @@ MINECRAFT_ADDRESS=192.168.1.110
 MINECRAFT_PORT=25575
 
 # A BASE64 encoding of the password to the rcon server. It defaults to the encoding of 'password'. 
-# This should not be used in production, as it opens the minecraft server to remote admin access.
+# This should be updated in production, as it opens the minecraft server to remote admin access.
 MINECRAFT_PASSWORD=cGFzc3dvcmQK
 
 # The port used by the NodeJS server

@@ -42,7 +42,11 @@ export default function MultiSelection(props) {
     }
 
     const updateSelected = (val) => {
-        const updateCheck = document.getElementById(`check-${val}`);
+        const checkList = document.getElementById(`checks-${id}`);
+        const inputList = checkList.getElementsByTagName('input');
+        const checkBoxList = Array.from(inputList).filter(elem => elem.type === 'checkbox');
+        const updateCheck = checkBoxList.find(check => check.id.split('-')[1] === val);
+
         const newVals = { ...expVals };
         newVals[val] = !newVals[val];
         updateCheck.checked = newVals[val];
@@ -52,11 +56,10 @@ export default function MultiSelection(props) {
     return (
         <div
             className={'relative w-full my-2 lg:my-3 '}
+            className={'relative w-full my-2 lg:my-3 '}
             id={id}>
             <div className={
                 'duration-300 bg-white dark:bg-black ' +
-                //'duration-300 border-2 rounded-xl bg-white dark:bg-black ' +
-                //'border-cyan-700 dark:border-cyan-300 ' +
                 className
             }>
                 <input
@@ -73,7 +76,7 @@ export default function MultiSelection(props) {
                         'absolute text-3xl transform -translate-x-8 translate-y-1 ' +
                         `${expanded ? '' : 'rotate-90 '}`
                     }
-                    onClick={(event) => { event.preventDefault(); event.stopPropagation(); expand(event) }}
+                    onClick={(event) => { expand(event) }}
                     type='button'>
                     <IoMdArrowDropdown />
                 </button>
@@ -86,9 +89,10 @@ export default function MultiSelection(props) {
                         'border-cyan-700 dark:border-cyan-300 max-h-48 ' +
                         `${expanded ? '' : 'hidden'}`
                     }
-                    ref={dropdownRef} >
+                    ref={dropdownRef}
+                    id={`checks-${id}`} >
                     {
-                        Object.keys(values).map(val => (
+                        Object.keys(values).sort().map(val => (
                             <div key={val}
                                 className={
                                     'ps-2 ' +

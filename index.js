@@ -32,10 +32,13 @@ const bcrypt = require('bcrypt');
 
 nextApp.prepare().then(async () => {
 
+    //Initialize the config and create the RConnection
     init();
 
+    //Get the config
     const Config = getConfig();
 
+    //Limit the body parser to prevent ovesized packets. This is from the front end
     const bodyParserJsonOptions = {
         limit: '1kb',
     }
@@ -52,6 +55,7 @@ nextApp.prepare().then(async () => {
     app.use(session(LoginSessionOpts));
     app.disable('x-powered-by');
 
+    //Endpoint to login.
     app.post('/login', validateAndSanitizeUser, async (req, res) => {
 
         const rawBody = req.body;
@@ -88,12 +92,15 @@ nextApp.prepare().then(async () => {
         res.status(200).send(pulledInfo);
     });
 
+    //Logs the user out and destroys the session
     app.all('/logout', (req, res) => {
         logEvent(LogLevel.DEBUG, 'Logging out');
+        req.session.userInfo = undefined;
         req.session.destroy();
         res.redirect('/');
     });
 
+    //Changes the password of the user. You must be logged in to change the password
     app.put('/change_password', async (req, res) => {
         if (!req.session.userInfo) {
             res.status(401).send({ error: 'User is not logged in.' });
@@ -156,6 +163,7 @@ nextApp.prepare().then(async () => {
         next();
     });
 
+    //Used to execute get commands from the DB
     app.get('/commands', async (req, res) => {
         const foundCmd = await getCommand('READ_COMMAND', req.session.userInfo);
 
@@ -167,11 +175,13 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(await getCommands()));
     });
 
+    //Used to get console commands
     app.get('/console', async (req, res) => {
         const commands = await getConsoleCommands();
         res.status(200).send(commands);
     });
 
+    //Used to execute comands through RCon
     app.put('/console', async (req, res) => {
         const commandName = req.body?.name?.replace(/^![\w_]+$/, '');
         logEvent(LogLevel.INFO, `Attempting to execute command ${commandName}`);
@@ -181,23 +191,24 @@ nextApp.prepare().then(async () => {
             return;
         }
 
-        // command = (await getConsoleCommands({ name: commandName }))[0];
-        // if (!command) {
-        //     logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
-        //     res.status(404).send({ error: 'Command cannot be found!' });
-        //     return;
-        // }
+        let firstSpace = commandName.indexOf(' ');
+        command = (await getConsoleCommands({ name: commandName.substring(0, firstSpace === -1 ? commandName.length : firstSpace).trim() }))[0];
+        if (!command) {
+            logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
+            res.status(404).send({ error: 'Command cannot be found!' });
+            return;
+        }
 
         logEvent(LogLevel.INFO, `Sending ${commandName} to be executed`);
 
         let response;
         try {
             await rcon.login();
-            response = await rcon.send(commandName);
+            response = await rcon.send(commandName.trim());
         } catch (err) {
             response = err;
             logError(err);
-            res.status(400).send({ message: response });
+            res.status(400).send({ error: response });
             return;
         }
 
@@ -523,6 +534,7 @@ nextApp.prepare().then(async () => {
         res.status(400).send(removedUser);
     });
 
+    //Used to serve static files
     app.get('/_next/*', (req, res) => {
         const reqPath = decodeURI(req.path.replace('_', '.'));
         logEvent(LogLevel.DEBUG, `Static path request: ${path.join(__dirname, reqPath)}`);
@@ -538,10 +550,12 @@ nextApp.prepare().then(async () => {
         });
     });
 
+    //Used to retrieve any pages from the admin sub diesctory
     app.get(/^\/admin/, (req, res) => {
         return handle(req, res);
     });
 
+    //Used to serve non-admin pages
     app.all('/', (req, res, next) => {
         if (req.path.includes('admin')) {
             if (!req.session.userInfo) {
@@ -567,21 +581,25 @@ nextApp.prepare().then(async () => {
         next();
     });
 
+    //If the path could not be found
     app.all('*', (req, res) => {
         logEvent(LogLevel.INFO, `404 error hit, trying to access page: ${req.path}`);
         res.status(404).send({ error: 'Page not found' });
         // handle(req, res);
     });
 
+    //Initializes the DB if the initializer is set from the config
     if (Config.nodeConfig.initUsers) {
         await InitUsers();
         await InitCommands();
         await InitConsoleCommands();
     }
 
+    //Start the server!
     http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
     });
 
+    //Log the event to ensure everything is up and good
     logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
 
 });

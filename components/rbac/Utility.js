@@ -1,7 +1,8 @@
 const { logEvent, LogLevel } = require("../Log");
 
 /**
- * Copies the elements from the object using the template to filter object properties
+ * Copies the elements from the object using the template to filter object properties.
+ * Though this is intended for specific objects to this project, in theory it can be used on any object.
  * @param {Role | Group | User | Array<Role> | Array<Group> | Array<User>} object A single or list of objects to remove extra fields from
  * @param {Object} template The object to validate against
  * @return An array of new objects filtered based on the template. If no objects were found, returns [{}]

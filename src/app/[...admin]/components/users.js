@@ -62,13 +62,13 @@ export default function User() {
             if (foundRole) {
                 selected = true;
             }
-            selectedRoles[role.name] = selected;
+            selectedRoles[`${role.name}`] = selected;
         });
 
         adminGroups.forEach(group => {
             let selected = false;
             let foundGroup = user.groups.find(ugroup => {
-                return ugroup = group.id;
+                return ugroup === group.id;
             })
 
             if (foundGroup) selected = true;
@@ -147,7 +147,7 @@ export default function User() {
     }
 
     const handleFormChange = (event) => {
-        console.log('Hello from form change!');
+        console.log('Hello from form change placeholder!');
     }
 
     const removeUser = () => {
@@ -178,6 +178,7 @@ export default function User() {
 
         const saveButton = document.getElementById('save-user');
         const rolesSelection = document.getElementById('UserRoles');
+        const groupsSelection = document.getElementById('UserGroups');
         const groupsSelection = document.getElementById('UserGroups');
 
         saveButton.innerHTML = 'Loading'
@@ -222,6 +223,7 @@ export default function User() {
             .map(adminGroup => adminGroup.id);
 
         changingUser.roles = newRoles;
+        changingUser.groups = newGroups;
         changingUser.groups = newGroups;
 
         await dispatchAdminUsers({ type: updated ? usersActionTypes.UPDATE_USER : usersActionTypes.CREATE_USER, payload: changingUser, context: dispatchAdminUsers });

@@ -5,8 +5,6 @@ import Button from './components/Button/Button'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from './api/login';
-import Selection from './components/Selection/Selection';
-import MultiSelection from './components/MultiSelection/MultiSelection';
 
 export default function Home() {
 
@@ -23,6 +21,11 @@ export default function Home() {
     const info = {
       username: document.getElementById('username').value,
       password: document.getElementById('password').value,
+    }
+
+    if (info.username === '' || info.password === '') {
+      setLoginError({ erred: true, message: "Username and password must not be empty!" });
+      return;
     }
 
     updateLogin(true);
