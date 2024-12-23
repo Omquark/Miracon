@@ -16,7 +16,7 @@ import { UserInfoContext, UserPrefContext } from "../layout";
 import Command from './components/commands';
 import AdminCommands from "./components/context/admin/commands";
 import PasswordModal from "./components/PasswordModal/PasswordModal";
-import CommandExecution from "./components/CommandExecution";
+import CommandExecution from "./components/commandExecution";
 
 export default function Admin() {
 
@@ -29,7 +29,7 @@ export default function Admin() {
         //Known pathname will begin with /admin, we need the next pathname ONLY
         const newPage = pathname.split('/')[2];//First element is empty, then admin, 3rd element is what we want
         setActivePage(newPage !== undefined ? newPage.charAt(0).concat(newPage.slice(1)) : '');
-        if(!sessionStorage.getItem('username')){
+        if (!sessionStorage.getItem('username')) {
             window.location.href = '/';
         }
         const info = {
@@ -41,18 +41,20 @@ export default function Admin() {
         setUserInfo(info);
     }, []);
 
+    let adminPage = {
+        roles: <AdminRoles><Role /></AdminRoles>,
+        groups: <AdminRoles><AdminGroups><Group /></AdminGroups></AdminRoles>,
+        users: <AdminRoles><AdminGroups><AdminUsers><User /></AdminUsers></AdminGroups></AdminRoles>,
+        commands: <AdminRoles><AdminCommands><Command /></AdminCommands></AdminRoles>,
+        "banned ip": <BannedIP />,
+        "banned players": <BannedPlayers />,
+        whitelist: <Whitelist />,
+        "command execution": <CommandExecution />,
+    }
+
     const adminPageSelector = () => {
-        switch (decodeURI(activePage.toLowerCase())) {
-            case ('roles'): return <AdminRoles><Role /></AdminRoles>
-            case ('groups'): return <AdminRoles><AdminGroups><Group /></AdminGroups></AdminRoles>
-            case ('users'): return <AdminRoles><AdminGroups><AdminUsers><User /></AdminUsers></AdminGroups></AdminRoles>
-            case ('commands'): return <AdminRoles><AdminCommands><Command /></AdminCommands></AdminRoles>
-            case ("banned ip"): return <BannedIP />
-            case ('banned players'): return <BannedPlayers />
-            case ("whitelist"): return <Whitelist />
-            case ("command execution"): return <CommandExecution />
-            default: return <></>
-        }
+        const normalizedPage = decodeURI(activePage.toLowerCase());
+        return adminPage[normalizedPage];
     }
 
     return (
@@ -62,7 +64,6 @@ export default function Admin() {
                 <Sidebar />
             </div>
             <div className={`duration-300 w-screen mt-14 ${prefs.sidebarOpen ? 'ml-64' : ''}`}>
-
                 {adminPageSelector()}
             </div>
         </div>

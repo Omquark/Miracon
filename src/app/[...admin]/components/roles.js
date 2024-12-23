@@ -12,7 +12,7 @@ export default function Role() {
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
-    const [sorted, setSorted] = useState({ column: 'id', ascending: true })
+    const [sorted, setSorted] = useState({ column: 'name', ascending: true })
 
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
@@ -24,6 +24,19 @@ export default function Role() {
             isInitialMount.current = false;
         }
     }, [dispatchAdminRoles]);
+
+    const showCreateRoleModal = () => {
+        const role = { name: '', id: '' };
+        showRoleModal(role);
+        setModalHeader(`Create new Role`);
+        const saveButton = document.getElementById('save-role');
+        const createButton = document.getElementById('create-role');
+        const removeButton = document.getElementById('remove-role');
+
+        saveButton.hidden = true;
+        createButton.hidden = undefined;
+        removeButton.hidden = true;
+    }
 
     const showRoleModal = (role) => {
         const message = (
@@ -48,10 +61,18 @@ export default function Role() {
 
         setModalMessage(message);
         setModalShown(true);
-        setModalHeader(role.name);
+        setModalHeader(`Role: ${role.name}`);
+        const saveButton = document.getElementById('save-role');
+        const createButton = document.getElementById('create-role');
+        const removeButton = document.getElementById('remove-role');
+
+        saveButton.hidden = undefined;
+        createButton.hidden = true;
+        removeButton.hidden = undefined;
+        removeButton.disabled = role.critical;
     }
 
-    const SaveRole = async () => {
+    const SaveRole = async (update = true) => {
         let savingRoleID;
         try {
             savingRoleID = document.getElementById('RoleID').value;
@@ -60,22 +81,34 @@ export default function Role() {
             return;
         }
 
-        const changingRole = adminRoles.find(role => {
-            return role.id === savingRoleID;
-        });
+        const changingRole = update ?
+            adminRoles.find(role => {
+                return role.id === savingRoleID;
+            }) :
+            { name: '', id: '' }
 
         const saveButton = document.getElementById('save-role');
         saveButton.innerHTML = 'Loading'
         saveButton.disabled = true;
 
         changingRole.name = document.getElementById('RoleName').value;
-        console.log('changingRole', changingRole);
 
-        dispatchAdminRoles({ type: rolesActionTypes.UPDATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
+        dispatchAdminRoles({ type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.CREATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
 
-        saveButton.innerHTML = 'Save'
+        saveButton.innerHTML = 'Save';
         saveButton.disabled = false;
 
+        setModalShown(false);
+    }
+
+    const RemoveRole = () => {
+        let roleID = document.getElementById('RoleID')?.value;
+        if (!roleID) {
+            console.log('The Role ID is not defined');
+            return;
+        }
+
+        dispatchAdminRoles({ type: rolesActionTypes.REMOVE_ROLE, payload: { id: roleID }, context: dispatchAdminRoles });
         setModalShown(false);
     }
 
@@ -83,16 +116,29 @@ export default function Role() {
         <>
             <Button
                 className='mx-2 my-2 '
-                onClick={SaveRole}
+                onClick={() => SaveRole(true)}
                 id='save-role'
                 type='submit'
                 enabled={true} >Save</Button>
+            <Button
+                className='mx-2 my-2 '
+                onClick={() => SaveRole(false)}
+                id='create-role'
+                type='submit'
+                enabled={true}
+                hidden={true} >Create</Button>
             <Button
                 className='mx-2 my-2 '
                 onClick={() => setModalShown(false)}
                 id='cancel-role'
                 type='button'
                 enabled={true} >Cancel</Button>
+            <Button
+                className='mx-2 my-2'
+                onClick={() => RemoveRole()}
+                id='remove-role'
+                type='submit'
+                enabled={true} >Delete</Button>
         </>
     )
 
@@ -114,7 +160,7 @@ export default function Role() {
                     id={'RoleModal'}
                     show={modalShown}
                     setShow={setModalShown}
-                    header={`Role: ${modalHeader}`}
+                    header={`${modalHeader}`}
                     footer={footerButtons}
                     static={true} >
                     {modalMessage}
@@ -174,6 +220,9 @@ export default function Role() {
                     }
                 </tbody>
             </table>
+            <Button onClick={() => showCreateRoleModal()}>
+                Create Role
+            </Button>
         </div>
     )
 }

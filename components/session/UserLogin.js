@@ -4,6 +4,7 @@ const { logEvent, LogLevel } = require("../Log");
 const { getUsers, updateUsers } = require("../rbac/User");
 const { resolveRoles } = require("../rbac/Group");
 const { getRoles } = require('../rbac/Role');
+const { bytesFromBase64, } = require('../utility/Utility');
 
 /**
  * Checkes the userInfo against the User db to confirm username and password.
@@ -80,25 +81,4 @@ async function updatePassword(userinfo) {
     return { message: 'Password updated' };
 }
 
-/**
- * Converts a text string to a Base64 encoded string
- * @param {String} bytes A text string to convert to Base64
- * @returns A Base64 encoded string
- */
-function bytesToBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
-    return btoa(binString);
-}
-
-/**
- * Convets a string from Base64 to plain text
- * @param {String} bytes A string which is encoded in Base64
- * @returns A Decoded string from Base64
- */
-function bytesFromBase64(bytes) {
-    const string = new TextEncoder().encode(bytes);
-    const binString = String.fromCodePoint(...string);
-    return atob(binString);
-}
-
-module.exports = { checkAndLoginUser, updatePassword, bytesFromBase64, bytesToBase64 }
+module.exports = { checkAndLoginUser, updatePassword, }

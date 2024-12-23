@@ -41,6 +41,7 @@ function isValidUUIDv4(uuid) {
   return uuid4Regex.test(uuid);
 }
 
+function isValidUsername(username) {
 /**
  * Checks if the username is valid
  * @param {String} username The username to validate
@@ -61,11 +62,12 @@ function isValidPassword(password) {
   return passwordRegex.test(password);
 }
 
-/**
- * Checks if an array of UUIDs are valid
- * @param {String} fieldName The array to validate
- * @returns A boolean defining if the array is valid UUIDs, or false of the field is not an array.
- */
+//This probably doesn't cover all emails, but should cover most
+function isValidEmail(email) {
+  const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
+  return emailRegex.test(email);
+}
+
 function validateUUIDArray(fieldName) {
   return body(fieldName).isArray().custom((value) => {
     if (!Array.isArray(value)) return false;
@@ -73,4 +75,4 @@ function validateUUIDArray(fieldName) {
   })
 }
 
-module.exports = { validateAndSanitizeUser, validateNameId, isValidUsername, isValidPassword, validateUUIDArray }
+module.exports = { validateAndSanitizeUser, validateNameId, isValidUsername, isValidPassword, isValidEmail, validateUUIDArray }

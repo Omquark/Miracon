@@ -1,16 +1,16 @@
-PRODUCT_NAME="miracon"
-TEMP_PATH=/var/tmp/$PRODUCT_NAME
+#! /bin/bash
+# PRODUCT_NAME="miracon"
+# TEMP_PATH=/var/tmp/$PRODUCT_NAME
 EDITOR_PASSWORD=$PRODUCT_NAME
 CREATED_USER=$PRODUCT_NAME
-INSTALL_PATH=/opt/${PRODUCT_NAME}
-CONFIG_PATH=/etc/opt/${PRODUCT_NAME}
-LOG_PATH=/var/opt/${PRODUCT_NAME}
-
+# INSTALL_PATH=/opt/${PRODUCT_NAME}
+# CONFIG_PATH=/etc/opt/${PRODUCT_NAME}
+# LOG_PATH=/var/opt/${PRODUCT_NAME}
 
 EXPECTED_USER=root
 
 #Verify User
-if [ ! $USER = $EXPECTED_USER ]
+if [ ! $USER = $EXPECTED_USER ];
 then
     "$(date) This program must be run as $EXPECTED_USER"
     exit 1
@@ -18,77 +18,88 @@ fi
 
 #Create the user and group
 useradd -M $CREATED_USER -p $EDITOR_PASSWORD
-groupadd $CREATED_USER
+groupadd ${CREATED_USER}g
 usermod -a -G ${CREATED_USER}g ${CREATED_USER}
 
 #Check if install path exists and remove it if it does
-if [ -d $INSTALL_PATH ]
+if [ -d $INSTALL_PATH ];
 then
-        echo "$(date) Directory $INSTALL_PATH exists. I will remove this folder without prejudice!"
+        echo "Directory $INSTALL_PATH exists. I will remove this folder without prejudice!"
         rm $INSTALL_PATH -rf
 fi
 
-mkdir $INSTALL_PATH
+echo "Creating installation directory @ $INSTALL_PATH"
+mkdir -p $INSTALL_PATH/bin $INSTALL_PATH/scripts
 chown -R ${CREATED_USER}:${CREATED_USER}g $INSTALL_PATH
 
 #Check the config path and remove it if it's there
-if [ -d $CONFIG_PATH ]
+if [ -d $CONFIG_PATH ];
 then
-        echo "$(date) Directory $CONFIG_PATH exists. I will remove this folder without prejudice!"
+        echo "Directory $CONFIG_PATH exists. I will remove this folder without prejudice!"
         rm $CONFIG_PATH -rf
 fi
 
-mkdir $CONFIG_PATH
+echo "Creating configuration path @ $CONFIG_PATH"
+mkdir -p $CONFIG_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $CONFIG_PATH
 
 #Check for the log path and reove it if it's there
-if [ -d $LOG_PATH ]
+if [ -d $LOG_PATH ];
 then
         echo "$(date) Directory $LOG_PATH exists. I will remove this folder without prejudice!"
         rm $LOG_PATH -rf
 fi
 
-mkdir $LOG_PATH
+if [ ! -d $MINECRAFT_SERVER_PATH ];
+then
+        echo "Creating folder to mount Minecraft Server files."
+        mkdir -p $MINECRAFT_SERVER_PATH
+fi
+
+echo "Creating log directory @ $LOG_PATH"
+mkdir -p $LOG_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $LOG_PATH
 
-echo "$(date) Creating installation binaries @ $INSTALL_PATH/bin"
-mkdir "$INSTALL_PATH/bin"
-echo "$(date) Creating logs directory @ $LOG_PATH/logs"
-mkdir "$LOG_PATH/logs"
+echo "Creating logs directory @ $LOG_PATH/logs"
+mkdir $LOG_PATH/logs
 
-echo "Building the back-end for deployment"
-cd $TEMP_PATH
-echo "Installing maven"
-apt-get install maven -y
-mvn clean install
-
-echo "$(date) Installing NodeJS 18.x latest"
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-apt-get install nodejs -y
-apt-get install npm -y
+echo "Creating and initializing DB"
+mkdir -p /data/db
+# mongod --bind_ip_all &
 
 cd $TEMP_PATH
-echo "$(date) Copying configuration"
+echo "Downloading necessary files to build front end"
+npm install --include=dev
+echo "Building the front end"
+npm run build
+
+echo "Installing application"
+cp index.js $INSTALL_PATH/bin -r
+cp package.json $INSTALL_PATH/bin -r
+cp postcss.config.js $INSTALL_PATH/bin -r
+cp tailwind.config.js $INSTALL_PATH/bin -r
+cp components/ $INSTALL_PATH/bin -r
+cp scripts/ $INSTALL_PATH -r
+cp $TEMP_PATH/.next/ $INSTALL_PATH/bin -a
+mkdir /home/miracon
+
+echo "Copying configuration"
 cp config/config.prop $CONFIG_PATH/config.prop
-cp scripts/ $INSTALL_PATH/bin/ -r
-echo "$(date) Copying front-end"
-cp build/ $INSTALL_PATH/bin -r
-cp server/ $INSTALL_PATH/bin/server -r
-echo "$(date) Running npm install on the server"
-cd $INSTALL_PATH/bin/server
+
+echo "Preparing build for launch"
+cd $INSTALL_PATH/bin
 npm install
-cd $TEMP_PATH
+cd $INSTALL_PATH
 
-echo "$(date) Removing installation files"
-rm "/opt/$PRODUCT_NAME/bin/$PRODUCT_NAME-install.ksh" -f
-
-echo "$(date) Updating security properties"
+echo "Updating security properties"
 chmod -R 755 $INSTALL_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $INSTALL_PATH
 chmod -R 755 $CONFIG_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $CONFIG_PATH
 chmod -R 755 $LOG_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $LOG_PATH
-cd /
-cp $TEMP_PATH/$PRODUCT_NAME-install.log /var/opt/$PRODUCT_NAME/logs
-#rm $TEMP_PATH -rf
+chmod -R 755 /data
+chown -R ${CREATED_USER}:${CREATED_USER}g /data
+
+echo "Cleaning up temp files"
+rm $TEMP_PATH -rf

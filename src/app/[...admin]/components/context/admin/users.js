@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useReducer, useContext, useEffect } from "react"
-import { pullUsers, saveUsers } from "../../api/users";
+import { pullUsers, mutateUsers } from "../../api/users";
 import { AdminRolesContext, rolesActionTypes } from "./roles";
 import { AdminGroupsContext, groupsActionTypes } from "./groups";
 
@@ -10,7 +10,7 @@ const initialUsersState = [{ name: '', id: '' }]
 export const AdminUsersContext = createContext();
 
 export const usersActionTypes = {
-  ADD_USER: 'ADD_USER',
+  CREATE_USER: 'CREATE_USER',
   GET_USER: 'GET_USER',
   UPDATE_USER: 'UPDATE_USER',
   REMOVE_USER: 'REMOVE_USER',
@@ -34,8 +34,8 @@ export const usersActionTypes = {
 function usersReducer(state, action) {
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
-    case (usersActionTypes.ADD_USER): {
-      console.log('adding users placeholder');
+    case (usersActionTypes.CREATE_USER): {
+      mutateUsers(action.payload, action.context, 'POST');
       return state;
     }
     //Retrieves and updates all users
@@ -45,9 +45,7 @@ function usersReducer(state, action) {
     }
     //Updates a single user
     case (usersActionTypes.UPDATE_USER): {
-      // COMMENT: action object = { type: "UPDATE_USER", payload: { newUser }, context: context for THIS reducer function}
-      console.log('action.payload', action.payload);
-      saveUsers(action.payload, action.context);
+      mutateUsers(action.payload, action.context);
       const newUser = state.find(user => user.id === action.payload.id);
       newUser.name = action.payload.name;
       newUser.roles = [...action.payload.roles];
@@ -56,8 +54,11 @@ function usersReducer(state, action) {
     }
     //Removes a single user
     case (usersActionTypes.REMOVE_USER): {
-      console.log('removing users')
-      return state;
+      mutateUsers(action.payload, action.context, 'DELETE');
+      const removeUserIndex = state.findIndex(user => user.id === action.payload.id || user.name === action.payload.name || user.email === action.payload.email);
+      const newState = [...state];
+      newState.splice(removeUserIndex, 1);
+      return newState;
     }
     //Used to show the response to the user
     case (usersActionTypes.RESPONSE_USER): {
@@ -66,7 +67,11 @@ function usersReducer(state, action) {
         location.reload();
         return state;
       }
-      return state;
+
+      return action.payload.length > 0 &&
+        state.find(user => user.name === action.payload[0].name) ?
+        state :
+        [...state, ...action.payload];
     }
     //Updates the users with the payload sent. Used with pullUsers, this is called by the API
     case (usersActionTypes.REFRESH_USER): {
@@ -83,8 +88,8 @@ function usersReducer(state, action) {
 
 export default function AdminUsers(props) {
 
-  const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
-  const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
+  const { dispatchAdminRoles } = useContext(AdminRolesContext);
+  const { dispatchAdminGroups } = useContext(AdminGroupsContext);
 
   const { children } = props;
 
@@ -96,8 +101,8 @@ export default function AdminUsers(props) {
   }, [dispatchAdminGroups, dispatchAdminRoles])
 
   return (
-      <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>
-        {children}
-      </AdminUsersContext.Provider>
+    <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>
+      {children}
+    </AdminUsersContext.Provider>
   )
 }

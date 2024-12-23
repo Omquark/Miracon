@@ -2,6 +2,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { logEvent, LogError, LogLevel, messageLevel, setMessageLevel } = require('./Log');
 const { cwd } = require('node:process');
+const { bytesFromBase64 } = require('./utility/Utility');
 
 const DEFAULT_CONFIG = {
 
@@ -76,28 +77,33 @@ function init(reload) {
     const configData = configString.split(/[\r\n]/)
         .filter(line => line !== '')
         .filter(line => !line.startsWith('#'))
-        .map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
+        .map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]);
 
-    Config.minecraftServer.path = configData.find(line => line[0] === 'MINECRAFT_SERVER_PATH')[1];
+    const getEnvVar = (envName) => {
+        return process.env[envName] ? process.env[envName] : configData.find(line => line[0] === envName)[1];
+    }
+
+    Config.minecraftServer.path = getEnvVar('MINECRAFT_SERVER_PATH');
     if (!Config.minecraftServer.path || Config.minecraftServer.path === '') {
         logEvent(LogLevel.WARN, 'Received an empty value for the minecraft server path! I will assume it is at /opt/minecraft.');
         Config.minecraftServer.path = '/opt/minecraft';
     }
 
-    Config.minecraftServer.address = configData.find(line => line[0] === 'MINECRAFT_ADDRESS')[1];
+
+    Config.minecraftServer.address = getEnvVar('MINECRAFT_ADDRESS');
     if (!Config.minecraftServer.address || Config.minecraftServer.address === '') {
         logEvent(LogLevel.WARN, 'Received an empty string as the Minecraft server address! Assuming it is running on localhost.')
         Config.minecraftServer.address = 'localhost';
     }
 
-    Config.minecraftServer.port = Number.parseInt(configData.find(line => line[0] === 'MINECRAFT_PORT')[1]);
+    Config.minecraftServer.port = Number.parseInt(getEnvVar('MINECRAFT_PORT'));
     if (!Config.minecraftServer.port || Number.isNaN(Config.minecraftServer.port) ||
         Config.minecraftServer.port > 65535 || Config.minecraftServer.port < 1) {
         logEvent(LogLevel.WARN, 'Minecraft port was not valid! Make sure it is a number within 1 to 65535 inclusive. Defaulting to 25575.')
         Config.minecraftServer.port = 25575;
     }
 
-    Config.minecraftServer.password = configData.find(line => line[0] === 'MINECRAFT_PASSWORD')[1];
+    Config.minecraftServer.password = bytesFromBase64(getEnvVar('MINECRAFT_PASSWORD'));
     if (!Config.minecraftServer.password || Config.minecraftServer.password === '') {
         LogError('Minecraft RCON server password was not defined! This is a fatal error and this server will not start!');
         throw new Error('Set the minecraft RCON password in the config to connect!');
@@ -106,46 +112,46 @@ function init(reload) {
     HiddenConfig.minecraftServer = { password: Config.minecraftServer.password };
     Config.minecraftServer.password = '***************************';
 
-    Config.log.level = LogLevel[configData.find(line => line[0] === 'LOG_LEVEL')[1]];
+    Config.log.level = LogLevel[getEnvVar('LOG_LEVEL')];
     if (!Config.log.level) {
         logEvent(LogLevel.WARN, 'The log level was not defined! This means that everything will be printed to the logs!');
         Config.log.level = LogLevel.ALL;
     }
     logEvent(LogLevel.DEBUG, JSON.stringify(Config.log.level));
 
-    Config.log.path = configData.find(line => line[0] === 'LOG_PATH')[1];
+    Config.log.path = getEnvVar('LOG_PATH');
     if (!Config.log.path || Config.log.path === '') {
         logEvent(LogLevel.WARN, 'Received in invalid value for the LOG_PATH! Defaulting to /var/opt/miracon.')
         Config.log.path = '/var/opt/miracon';
     }
 
-    Config.log.logFolder = configData.find(line => line[0] === 'LOG_FOLDER')[1];
+    Config.log.logFolder = getEnvVar('LOG_FOLDER');
     if (!Config.log.logFolder || Config.log.logFolder === '') {
         logEvent(LogLevel.WARN, 'Received an invalid value as the log folder! Defauting to logs.')
         Config.log.logFolder = 'logs';
     }
 
-    Config.log.auditFolder = configData.find(line => line[0] === 'AUDIT_FOLDER')[1];
+    Config.log.auditFolder = getEnvVar('AUDIT_FOLDER');
     if (!Config.log.auditFolder || Config.log.auditFolder === '') {
         logEvent(LogLevel.WARN, 'Received an invalid value as the audit folder! Defaulting to audit.')
         Config.log.auditFolder = 'audit';
     }
 
-    Config.nodeConfig.port = configData.find(line => line[0] === 'WEB_SERVER_PORT')[1];
+    Config.nodeConfig.port = getEnvVar('WEB_SERVER_PORT');
     if (!Config.nodeConfig.port || Number.isNaN(Config.nodeConfig.port) ||
         Config.nodeConfig.port > 65535 || Config.nodeConfig.port < 1) {
         logEvent(LogLevel.WARN, 'WEB_SERVER_PORT was not valid! Make sure it is a number within 1 to 65535 includsive. Defaulting to 443(HTTPS).')
         Config.nodeConfig.port = 443;
     }
 
-    Config.nodeConfig.installPath = configData.find(line => line[0] === 'MIRACON_INSTALL_DIRECTORY')[1];
+    Config.nodeConfig.installPath = getEnvVar('MIRACON_INSTALL_DIRECTORY');
     if (!Config.nodeConfig.installPath || Config.nodeConfig.installPath === '') {
         logEvent(LogLevel.WARN, 'Received an invalid value for the install folder. Assuming the parent folder of the server')
         Config.nodeConfig.installPath = cwd();
         logEvent(LogLevel.DEBUG, `installDirectory=${cwd()}`);
     }
 
-    Config.nodeConfig.initUsers = Number.parseInt(configData.find(line => line[0] === 'INIT_USERS')[1]);
+    Config.nodeConfig.initUsers = Number.parseInt(getEnvVar('INIT_USERS'));
     if (Config.nodeConfig.initUsers === undefined || Number.isNaN(Config.nodeConfig.initUsers) ||
         (Config.nodeConfig.initUsers !== 0 && Config.nodeConfig.initUsers !== 1)) {
         logEvent(LogLevel.WARN, 'Received an invalid value if to initialize users, this is a fatal error! This value must either be 0(No) or 1(Yes). This must be corrected to continue!');
@@ -158,38 +164,38 @@ function init(reload) {
         logEvent(LogLevel.DEBUG, `installDirectory=${Config.nodeConfig.installPath}`);
     }
 
-    Config.dbConfig.username = configData.find(line => line[0] === 'DB_USERNAME')[1];
+    Config.dbConfig.username = getEnvVar('DB_USERNAME');
     if (!Config.dbConfig.username || Config.dbConfig.username === '') {
         logEvent(LogLevel.WARN, 'Received an empty value for the database username! I will assume it is miracon.');
         Config.dbConfig.username = 'miracon';
     }
 
-    Config.dbConfig.password = configData.find(line => line[0] === 'DB_PASSWORD')[1];
+    Config.dbConfig.password = bytesFromBase64(getEnvVar('DB_PASSWORD'));
     if (!Config.dbConfig.password || Config.dbConfig.password === '') {
         LogError('The database server was not found! This is a fatal error and the server will not start!');
         throw new Error('Set the database password in the config to connect!');
     }
     //Move the password to prevent it from being printed in the log.
-    HiddenConfig.dbConfig = { password: atob(Config.dbConfig.password) };
+    HiddenConfig.dbConfig = { password: Config.dbConfig.password };
     Config.dbConfig.password = '***************************';
 
-    Config.dbConfig.url = configData.find(line => line[0] === 'DB_URL')[1];
+    Config.dbConfig.url = getEnvVar('DB_URL');
     if (!Config.dbConfig.url || Config.dbConfig.url === '') {
         logEvent(LogLevel.WARN, 'Received an empty value for the database url! I will assume it is localhost.');
         Config.dbConfig.url = 'localhost';
     }
 
-    Config.dbConfig.port = configData.find(line => line[0] === 'DB_PORT')[1];
+    Config.dbConfig.port = getEnvVar('DB_PORT');
     if (!Config.dbConfig.port || Number.isNaN(Config.dbConfig.port) ||
         Config.dbConfig.port > 65535 || Config.dbConfig.port < 1) {
         logEvent(LogLevel.WARN, 'DB_PORT was not valid! Make sure it is a number within 1 to 65535 inclusive. Defaulting to 27017(MongoDB default port).')
         Config.dbConfig.port = 27017;
     }
 
-    Config.dbConfig.dbname = configData.find(line => line[0] === 'DB_NAME')[1];
+    Config.dbConfig.dbname = getEnvVar('DB_NAME');
     if (!Config.dbConfig.dbname || Config.dbConfig.dbname === '') {
         logEvent(LogLevel.WARN, 'Received an empty value for the database name! I will assume it is miracon.');
-        Config.dbConfig.dbname = 'localhost';
+        Config.dbConfig.dbname = 'miracon';
     }
 
     logEvent(LogLevel.INFO, 'Setting the log level.');

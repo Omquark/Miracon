@@ -23,19 +23,26 @@ export default function CommandExecution() {
     setConsoleCommandsState();
   }, []);
 
-
-  const createElements = (elems, required) => {
+  /**
+   * Creates the elements for the form to offer the user required and optional elements
+   * @param {Array} elems An array of parameters for the command
+   * @param {boolean} required If this element is required. Used primarily to set a textbox red when it is required (Not yet working)
+   * @returns The body to be used directly in the modal
+   */
+  const createElements = async (elems, required) => {
     if (elems.length === 0) return undefined;
+    let param;
     const body = [];
-    elems.forEach((param) => {
+    for (param of elems) {
+      // elems.forEach(async (param) => {
       if (!param.type) return;
       let id = `${param.name}`;
       switch (param.type.toUpperCase()) {
         case ('STRING'): {
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <TextBox
-                className={required ? 'bg-red-300' : ''}
+                className={required ? ' bg-red-300 ' : ''}
                 type='text'
                 id={id}
                 placeholder={param.name} />
@@ -43,21 +50,26 @@ export default function CommandExecution() {
           ));
           break;
         }
-        case ('ENUM'): {
+        //Handles similar, but has a slight difference how the selections are populated
+        case ('PLAYER'):
+        case ('ENUM'):
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <Selection
                 className=''
                 placeholder={param.name}
                 id={id}
-                values={param.values} />
+                values={
+                  param.type.toUpperCase() === 'ENUM' ?
+                    param.values :
+                    await listPlayers()
+                } />
             </div>
           ));
           break;
-        }
         case ('BOOLEAN'): {
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <CheckBox
                 id={id}
                 placeholder={param.name} />
@@ -65,33 +77,41 @@ export default function CommandExecution() {
           ))
         }
       }
-    });
-
+    }
     return body;
   }
 
-  const hideModal = () => {
-    // document.getElementById('command-form')?.childNodes.forEach(c => c?.remove());
-    setModalShown(false);
+  const listPlayers = async () => {
+    const listResponse = await effectCommand('list');
+    //String looks as There are 1 of max of 20 players online: player1, player2
+    //we can assume player names are alpha-numeric with underscores
+    //Split and use the second of the array, this is the raw player list
+    const rawList = listResponse.message.split(':')[1];
+    //Now split by commas
+    const playerList = rawList.split(',').map(player => player.trim());
+    if (playerList[0] === "") playerList[0] = "No players found";
+    return playerList;
   }
 
-  const executeCommand = (name, checkForm = false) => {
-    const params = [];
-    const form = document.getElementById('command-form')?.elements;
-    console.log('form', form);
-    if (form && checkForm) {
-      Array.from(form).filter(elem => elem.nodeName !== 'BUTTON').forEach(elem => {
-        if (!elem) return;
-        if (elem.type === 'checkbox') {
-          if (elem.checked)
-            params.push(elem.id);
-        } else {
-          params.push(elem.value);
-        }
-      });
-    }
+  const executeSimpleCommand = (name) => {
+    callCommand(name);
+  }
 
-    const commandString = name.concat(' ', params?.join(' ')).trim();
+  const executeCommand = (name) => {
+    const params = [];
+    const form = document.getElementById('command-form');
+    const elements = form?.elements;
+    Array.from(elements).filter(elem => elem.nodeName !== 'BUTTON' && !elem.hidden).forEach(elem => {
+      if (elem.type === 'checkbox') {
+        if (elem.checked)
+          params.push(elem.id);
+      } else {
+        params.push(elem.value);
+      }
+    });
+
+    const commandString = name.concat(' ', params.join(' '));
+    setModalShown(false);
     callCommand(commandString);
   }
 
@@ -99,14 +119,13 @@ export default function CommandExecution() {
     setModalHeader(command.name);
 
     const body = [];
-    const reqElems = createElements(command.required, true);
+    const reqElems = await createElements(command.required, true);
     if (reqElems?.length > 0) body.push(reqElems);
-    const optElems = createElements(command.optional, false);
+    const optElems = await createElements(command.optional, false);
     if (optElems?.length > 0) body.push(optElems);
-    console.log('body', body);
     if (body.length === 0) {
-      console.log('body.length === 0 command', command)
-      executeCommand(command.name);
+      console.log(`Executing simple command ${command.name}`);
+      executeSimpleCommand(command.name);
       return;
     }
 
@@ -147,7 +166,7 @@ export default function CommandExecution() {
   }
 
   return (
-    <div className='flex flex-wrap'>
+    <div className='flex flex-wrap mt-5 '>
       <Modal
         id='console-modal'
         show={modalShown}
@@ -164,7 +183,7 @@ export default function CommandExecution() {
             .map(command =>
               <div key={command.id}>
                 <Button
-                  className='ms-4 my-5 mt-5 '
+                  className='ms-4 my-5 '
                   onClick={() => prepareModal(command)}
                   id={`effect-${command.name}`}
                   type='button'

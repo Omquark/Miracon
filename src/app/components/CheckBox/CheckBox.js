@@ -2,7 +2,7 @@
 
 export default function CheckBox(props) {
 
-  const { id, placeholder } = props;
+  const { id, placeholder, defaultChecked } = props;
 
   return (
     <div className='w-full py-3 flex my-auto '>
@@ -17,6 +17,7 @@ export default function CheckBox(props) {
           'peer '
         }
         type='checkbox'
+        defaultChecked={defaultChecked}
         id={id}
       />
       <label

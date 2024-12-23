@@ -118,7 +118,7 @@ async function InitUsers() {
   for (user of createdUsers) {
     try {
       logEvent(LogLevel.DEBUG, `Hashing password for ${user.name}`);
-      user.password = bcrypt.hashSync(user.password, 14);
+      user.password = await bcrypt.hash(user.password, 14);
       await addUsers(user);
     }
     catch (err) {

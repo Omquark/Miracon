@@ -1,4 +1,5 @@
-# Defines variables defualt values and a description. These values are first checked in the appropriate env vars.
+# Defines variables defualt values and a description.
+#Environment variables are checked first, and if not defined will use what's listed here.
 
 # Where the Minecraft server files can be located.
 # Specifically, we need banned-ips.json, banned-player.json, ops.json, and whitelist.json
@@ -28,7 +29,7 @@ LOG_FOLDER=logs
 AUDIT_FOLDER=audit
 
 # Server address of the minecraft server. This defaults to localhost, and the server will fail if it cannot connect at startup
-MINECRAFT_ADDRESS=localhost
+MINECRAFT_ADDRESS=192.168.1.110
 
 # Server port used by the RCON server. Valid values are anything between 1 and 65535. Defaults to 25575.
 MINECRAFT_PORT=25575
@@ -46,7 +47,8 @@ WEB_SERVER_PORT=3011
 INIT_USERS=1
 
 # When set to 1, creates a back-up admin with access to users roles and groups for recovery.
-# This admin can be deleted and will be overwritten in the event of an emergency.
+# This admin will only exist during emergency starts. This should be deleted after use or restart the server
+# This is not implemented yet. Currently, you must set INIT_USERS to 1 to undo changes
 EMERGENCY_USER=0
 
 # The username to connect to the MongoDB. This user must have readWrite access to the DB.

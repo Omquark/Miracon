@@ -20,7 +20,7 @@ async function InitCommands() {
   //Create a role for each command listed in the comDef object. Name them with the same name for the hell of it(simplicity)
   for (command of cmdDef.Commands) {
     logEvent(LogLevel.DEBUG, `Adding role for command ${command.name}`);
-    await addRoles({ name: command.name });
+    await addRoles({ name: command.name, critical: true });
     const addedRole = await getRoles({ name: command.name });
     logEvent(LogLevel.DEBUG, `addedRole: ${JSON.stringify(addedRole)}`)
 
@@ -108,7 +108,7 @@ async function getCommand(name, user,) {
   }
   if (!user || (!user.name && !user.id)) {
     logEvent(LogLevel.AUDIT, `Attempted to execute command ${name.toUpperCase()}, but the user was not defined, or is incomplete! user: ${JSON.stringify(user)}`);
-    return { error: `user or username was not defined!` };
+    return { error: `User or username was not defined!` };
   }
   logEvent(LogLevel.DEBUG, `Attempting to find command ${name.toUpperCase()} by ${user.name}`);
   //const foundCommand = cmdDef.Commands.find(cmd => cmd.name.toUpperCase() === name.toUpperCase());

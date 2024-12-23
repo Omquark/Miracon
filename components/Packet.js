@@ -26,22 +26,27 @@ const PACKET_INFO = {
  * @returns The fully structured Packet.
  */
 function structPacket(packetInfo){
-    const { packetId, packetType, packetBody } = packetInfo;
+    const { packetId, packetType } = packetInfo;
 
-    //The packetSize, needed for the packet, 4 bytes
-    const size = packetBody ? Buffer.byteLength(packetBody) : 0x02;
-    //Create the buffer
-    const buffer = Buffer.alloc(size + 14, 0xF0, 'ascii');
-    
-    buffer.writeInt32LE(buffer.length - 4, 0);
-    buffer.writeInt32LE(packetId, 4);
-    buffer.writeInt32LE(packetType, 8);
-    
-    packetBody ? 
-    buffer.write(packetBody, 12, size, 'ascii') : 
-    buffer.writeInt16LE(0x00, buffer.length - 4);
+    //If packets fail, check to make sure the body is not being appened with non-whitspace characters!
+    const packetBody = packetInfo.packetBody ? packetInfo.packetBody.trim() : '';
 
-    buffer.writeInt16LE(0, buffer.length - 2);
+    const payloadLength = packetBody ? Buffer.byteLength(packetBody, 'ascii') : 0;
+    const size = 4 + 4 + 4 + payloadLength + 2; //ID + Type + Payload + 2 null butes
+
+    const buffer = Buffer.alloc(size);
+
+    buffer.writeInt32LE(size - 4, 0); //Packet size minus the size field
+    buffer.writeInt32LE(packetId, 4); //packetID
+    buffer.writeInt32LE(packetType, 8); //packetType
+
+    //Write the packet payload
+    if(packetBody){
+        buffer.write(packetBody, 12, payloadLength, 'ascii');
+    }
+
+    //Terminator
+    buffer.writeInt16LE(0x00, 12 + payloadLength);
 
     return buffer;
 }
