@@ -367,7 +367,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(pulledUsers));
     });
 
-    app.put('/users', async (req, res) => {
+    app.put('/users', validateNameId, async (req, res) => {
         const rawBody = req.body;
 
         const commandError = await checkCommand('UPDATE_USER');
@@ -414,7 +414,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(user))
     });
 
-    app.post('/users', async (req, res) => {
+    app.post('/users', validateNameId, async (req, res) => {
         const rawBody = req.body;
 
         const commandError = await checkCommand('CREATE_USER', req.session.userInfo);
