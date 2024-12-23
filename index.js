@@ -17,17 +17,18 @@ const { checkAndLoginUser, updatePassword } = require('./components/session/User
 const { LoginSessionOpts } = require('./components/session/LoginSession');
 const { getRoles, updateRoles, addRoles, removeRoles } = require('./components/rbac/Role');
 const { getGroups, updateGroups, addGroups, resolveRoles, removeGroups } = require('./components/rbac/Group');
-const { getUsers, updateUsers } = require('./components/rbac/User');
+const { getUsers, updateUsers, addUsers, removeUsers } = require('./components/rbac/User');
 const { InitUsers } = require('./components/rbac/Init');
 const { InitCommands, getCommand } = require('./components/commands/Commands');
 const path = require('path');
 const { access, constants } = require('fs');
 const { getCommands } = require('./components/rbac/Command');
-const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsername } = require('./components/utility/Validators');
+const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsername, isValidEmail } = require('./components/utility/Validators');
 const { InitConsoleCommands } = require('./components/commands/ConsoleCommands');
 const { getConsoleCommands } = require('./components/rbac/ConsoleCommand');
 const { RConnection } = require('./components/RConnnection');
 const { bytesFromBase64 } = require('./components/utility/Utility');
+const bcrypt = require('bcrypt');
 
 nextApp.prepare().then(async () => {
 
@@ -49,6 +50,7 @@ nextApp.prepare().then(async () => {
 
     app.use(bodyParser.json(bodyParserJsonOptions));
     app.use(session(LoginSessionOpts));
+    app.disable('x-powered-by');
 
     app.post('/login', validateAndSanitizeUser, async (req, res) => {
 
@@ -99,6 +101,7 @@ nextApp.prepare().then(async () => {
         }
 
         const rawBody = req.body;
+        //TODO: Does not work, fix it!
         if (!rawBody.userinfo && !rawBody.userinfo.oldPassword &&
             !isValidPassword(rawBody.userinfo.oldPassword) ||
             !rawBody.userinfo && !rawBody.userinfo.newPassword &&
@@ -127,8 +130,8 @@ nextApp.prepare().then(async () => {
         res.status(message.error ? 400 : 200).send(message)
     });
 
-    app.all(/^(?!\/$|\/_next).*$/, async (req, res, next) => {
-        // app.use(/\/roles|\/groups|\/users|\/admin|\/commands|\/console/, async (req, res, next) => {
+    //Check that userinfo exists and validate it with session
+    app.all(/^(?!\/$|\/_next|\/favicon\.ico$).*$/, async (req, res, next) => {
         const userInfo = req.session.userInfo;
 
         logEvent(LogLevel.DEBUG, `process.env.NODE_ENV = ${process.env.NODE_ENV}`);
@@ -308,9 +311,8 @@ nextApp.prepare().then(async () => {
             return;
         }
 
-        newGroups.push({ name: rawBody.name, roles: rawBody.roles, id: rawBody.id });
         newGroup.name = rawBody.data.name;
-        newGroup.roles = rawBody.data.roles;
+        newGroup.roles = rawBody.data.roles ? rawBody.data.roles : [];
         newGroup.id = rawBody.data.id;
 
         updated = await updateGroups(newGroup, newGroup);
@@ -357,7 +359,7 @@ nextApp.prepare().then(async () => {
         res.status(200).send(removedGroup);
     });
 
-    app.get('/users', async (req, res) => {
+    app.get('/users', validateNameId, async (req, res) => {
         const pulledUsers = (await getUsers()).map(user => {
             user.password = '*********************';
             return user;
@@ -365,35 +367,160 @@ nextApp.prepare().then(async () => {
         res.status(200).send(JSON.stringify(pulledUsers));
     });
 
-    app.post('/users', validateNameId, (req, res) => {
+    app.put('/users', async (req, res) => {
         const rawBody = req.body;
-        const newUsers = [];
-        let updated;
 
-        logEvent(LogLevel.DEBUG, 'Hitting endpoint@/admin/users')
-        if (Array.isArray(rawBody)) {
-            rawBody.forEach(raw => {
-                if (!raw.id && !raw.name) {
-                    logEvent(LogLevel.DEBUG, 'Attemptd to update a user without an ID or name in an Array!');
-                    logEvent(LogLevel.DEBUG, `raw ${JSON.stringify(raw)}`);
-                    return;
-                }
-                newUsers.push({ name: raw.name, roles: raw.roles, id: raw.id });
-            })
+        const commandError = await checkCommand('UPDATE_USER');
+        if (commandError?.error) {
+            res.status(403).send({ error: commanderror });
+            return;
         }
 
-        if (!Array.isArray(rawBody)) {
-            if ((rawBody.name === undefined && rawBody.id === undefined)) {
-                logError('A User was attempted to be updated is missing an name and ID! At least one of these values must be provided!');
-                res.status(400).send({ error: 'No ID or name provided with user! I don\'t know which one to upate without an ID or name!' });
-                return;
-            }
-            newUsers.push({ name: rawBody.name, roles: rawBody.roles, id: rawBody.id });
+        const password = rawBody.data.password ? bytesFromBase64(rawBody.data.password) : '';
+
+        if (!rawBody.data || (!rawBody.data.name && !rawBody.data.email && !rawBody.data.id)) {
+            logError('A user was attempted to be updated without a username, email, or ID! At least one of these fields must be provided to update');
+            res.status(400).send({ error: "No username, email, or id was provided! You must specifiy one of these to update a user." });
+            return;
         }
 
-        updated = updateUsers(newUsers, newUsers).map(user => user.password = '***************************');
+        if (rawBody.data.name && !isValidUsername(rawBody.data.name)) {
+            res.status(400).send({ error: 'Username must only contain alphanumeric characters with underscore' })
+            return;
+        }
 
-        res.status(200).send(updated);
+        if (password && !isValidPassword(password)) {
+            res.status(400).send({ error: 'Password must contain alohanumeric characters or any of _!@#$%^&*?' });
+            return;
+        }
+
+        if (rawBody.data.email && !isValidEmail(rawBody.data.email)) {
+            res.status(400).send({ error: 'Email is not valid, only alphanumeric chaaracters and _- are allowed' });
+            return;
+        }
+
+        const user = await getUsers({ id: rawBody.data.id, name: rawBody.data.name, email: rawBody.data.email });
+
+        user.name = rawBody.data.name ? rawBody.data.name : user.name;
+        user.password = rawBody.data.password ? await bcrypt.hash(rawBody.data.password, 14) : user.password;
+        user.email = rawBody.data.email ? rawBody.data.email : user.email;
+        user.roles = rawBody.data.roles ? rawBody.data.roles : user.roles;
+        user.groups = rawBody.data.groups ? rawBody.data.groups : user.groups;
+        user.active = rawBody.data.active ? rawBody.data.active : user.active;
+        user.changePassword = rawBody.data.name ? rawBody.data.name : user.name;
+
+        const updatedUser = await updateUsers({ id: user.id }, user);
+
+        res.status(200).send(JSON.stringify(user))
+    });
+
+    app.post('/users', async (req, res) => {
+        const rawBody = req.body;
+
+        const commandError = await checkCommand('CREATE_USER', req.session.userInfo);
+
+        if (commandError?.error) {
+            res.status(400).send({ error: commandError.error });
+            return;
+        }
+
+        console.log('rawBody', rawBody);
+
+        if (rawBody.data === undefined ||
+            (
+                rawBody.data.name === undefined &&
+                rawBody.data.email === undefined &&
+                rawBody.data.password === undefined)) {
+            logError('A user was attempted to be created without a username, password or email! All of these must be provided to create a new user.')
+            res.status(400).send({ error: 'An email, name, and password must be provided to create a user.' });
+            return;
+        }
+
+        const password = bytesFromBase64(rawBody.data.password);
+        console.log(`password: ${password}`);
+
+        if (!isValidUsername(rawBody.data.name)) {
+            res.status(400).send({ error: 'Username must only contain alphanumeric characters with underscore' })
+            return;
+        }
+
+        if (!isValidPassword(password)) {
+            res.status(400).send({ error: 'Password must contain alohanumeric characters or any of _!@#$%^&*?\\' });
+            return;
+        }
+
+        if (!isValidEmail(rawBody.data.email)) {
+            res.status(400).send({ error: 'Email is not valid, only alphanumeric chaaracters and _- are allowed' });
+            return;
+        }
+
+        const newUser = await addUsers({
+            name: rawBody.data.name,
+            password: await bcrypt.hash(password, 14),
+            email: rawBody.data.email,
+            preferences: {},
+            roles: rawBody.data.roles ? rawBody.data.roles : [],
+            groups: rawBody.data.groups ? rawBody.data.groups : [],
+            active: rawBody.data.active ? rawBody.data.active : false,
+            changePassword: true,
+            critical: false,
+        });
+
+        newUser.password = '****************';
+
+        res.status(200).send(JSON.stringify(newUser));
+
+
+
+        // if (Array.isArray(rawBody)) {
+        //     rawBody.forEach(raw => {
+        //         if (!raw.id && !raw.name) {
+        //             logEvent(LogLevel.DEBUG, 'Attemptd to update a user without an ID or name in an Array!');
+        //             logEvent(LogLevel.DEBUG, `raw ${JSON.stringify(raw)}`);
+        //             return;
+        //         }
+        //         newUsers.push({ name: raw.name, roles: raw.roles, id: raw.id });
+        //     })
+        // }
+
+        // if (!Array.isArray(rawBody)) {
+        //     if ((rawBody.name === undefined && rawBody.id === undefined)) {
+        //         logError('A User was attempted to be updated is missing an name and ID! At least one of these values must be provided!');
+        //         res.status(400).send({ error: 'No ID or name provided with user! I don\'t know which one to upate without an ID or name!' });
+        //         return;
+        //     }
+        //     newUsers.push({ name: rawBody.name, roles: rawBody.roles, id: rawBody.id });
+        // }
+
+        // updated = await updateUsers(newUsers, newUsers).map(user => user.password = '***************************');
+
+        // res.status(200).send(updated);
+    });
+
+    app.delete('/users', validateNameId, async (req, res) => {
+        const rawBody = req.body;
+
+        const commandError = await checkCommand('DELETE_USER');
+
+        if (commandError?.error) {
+            res.status(400).send({ error: commandError.error });
+            return;
+        }
+
+        if (rawBody.data === undefined ||
+            (
+                rawBody.data.name === undefined &&
+                rawBody.data.email === undefined &&
+                rawBody.data.password === undefined)) {
+            logError('A user was attempted to be created without a username, password or email! All of these must be provided to create a new user.')
+            res.status(400).send({ error: 'An email, name, and password must be provided to create a user.' });
+            return;
+        }
+
+        const user = { name: rawBody.data.name, id: rawBody.data.id, email: rawBody.data.email };
+
+        const removedUser = await removeUsers(user);
+        res.status(400).send(removedUser);
     });
 
     app.get('/_next/*', (req, res) => {
@@ -431,7 +558,7 @@ nextApp.prepare().then(async () => {
         }
         logEvent(LogLevel.DEBUG, 'Handing off to next to handle requst');
         logEvent(LogLevel.DEBUG, `req.path ${req.path}`);
-        if (req.path === '/') {
+        if (req.path === '/' || req.path === '/favicon.ico') {
             // logEvent(LogLevel.INFO, `404 error hit, details: ${JSON.stringify(req, undefined, 2)}`);
             handle(req, res);
             // res.status(404).send({ error: 'Page cannot be found' });

@@ -48,7 +48,7 @@ export async function mutateRoles(roles, dispatch, verb) {
                 headers: {
                     'content-type': 'application/json',
                 },
-                method: verb
+                method: verb.toUpperCase(),
             });
 
         data = await response.json();

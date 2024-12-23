@@ -7,6 +7,7 @@ import Button from '@/app/components/Button/Button';
 import MultiSelection from '@/app/components/MultiSelection/MultiSelection';
 import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
 import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
+import { IoMdArrowDropdown } from 'react-icons/io';
 
 export default function Group() {
 
@@ -90,10 +91,10 @@ export default function Group() {
         removeButton.hidden = undefined;
     }
 
-    const RemoveGroup = () => {
+    const removeGroup = () => {
         let groupID = document.getElementById('GroupID')?.value;
         if (!groupID) {
-            console.log('The group ID is not defeined');
+            alert('The group ID cannot be found!')
             return;
         }
 
@@ -142,7 +143,7 @@ export default function Group() {
 
         changingGroup.roles = newRoles;
 
-        dispatchAdminGroups({ type: updated ? groupsActionTypes.UPDATE_GROUP : groupsActionTypes.ADD_GROUP, payload: changingGroup, context: dispatchAdminGroups });
+        dispatchAdminGroups({ type: updated ? groupsActionTypes.UPDATE_GROUP : groupsActionTypes.CREATE_GROUP, payload: changingGroup, context: dispatchAdminGroups });
 
         saveButton.innerHTML = 'Save'
         saveButton.disabled = false;
@@ -172,12 +173,23 @@ export default function Group() {
                 enabled={true} >Cancel</Button>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => RemoveGroup()}
+                onClick={() => removeGroup()}
                 id='remove-group'
                 type='submit'
                 enabled={true} >Delete</Button>
         </>
     )
+
+    const sortBy = (column) => {
+        const newSorted = { ...sorted };
+        if (newSorted.column === column) {
+            newSorted.ascending = !newSorted.ascending;
+        } else {
+            newSorted.column = column;
+            newSorted.ascending = true;
+        }
+        setSorted(newSorted);
+    }
 
     return (
         <div className='text-center'>
@@ -193,14 +205,41 @@ export default function Group() {
             <table className='table-fixed border border-collapse w-full'>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
+                        <th className='mx-auto cursor-pointer' onClick={() => sortBy('id')}>
+                            <div className='flex justify-center'>
+                                ID
+                                {
+                                    sorted.column === 'id' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
+
+                        <th className='mx-auto cursor-pointer' onClick={() => sortBy('name')}>
+                            <div className='flex justify-center'>
+                                Name
+                                {
+                                    sorted.column === 'name' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     {
                         adminGroups && Array.isArray(adminGroups) ?
-                            adminGroups.map(group => {
+                            adminGroups.sort((a, b) => {
+                                return sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column];
+                            }).map(group => {
                                 if (!group) return <></>
                                 return (
                                     <tr

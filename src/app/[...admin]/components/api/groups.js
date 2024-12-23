@@ -43,7 +43,7 @@ export async function mutateGroups(groups, dispatch, verb) {
                 headers: {
                     'content-type': 'application/json',
                 },
-                method: verb,
+                method: verb.toUpperCase(),
             });
 
         data = await response.json();

@@ -93,7 +93,7 @@ export default function Role() {
 
         changingRole.name = document.getElementById('RoleName').value;
 
-        dispatchAdminRoles({ type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.ADD_ROLE, payload: changingRole, context: dispatchAdminRoles });
+        dispatchAdminRoles({ type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.CREATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
 
         saveButton.innerHTML = 'Save';
         saveButton.disabled = false;

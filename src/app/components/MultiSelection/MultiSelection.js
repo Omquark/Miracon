@@ -29,8 +29,8 @@ export default function MultiSelection(props) {
     }, [id, values])
 
     const expand = (event) => {
-        stopPropagation();
-        stopDefaultAction();
+        event.stopPropagation();
+        event.preventDefault();
 
         setExpanded(!expanded);
     }
@@ -51,7 +51,7 @@ export default function MultiSelection(props) {
 
     return (
         <div
-            className={'relative w-full my-2 lg:my-3 z-20 '}
+            className={'relative w-full my-2 lg:my-3 '}
             id={id}>
             <div className={
                 'duration-300 bg-white dark:bg-black ' +

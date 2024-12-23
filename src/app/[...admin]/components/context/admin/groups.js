@@ -9,7 +9,7 @@ const initialGroupsState = [{ name: '', id: '' }]
 export const AdminGroupsContext = createContext();
 
 export const groupsActionTypes = {
-  ADD_GROUP: 'ADD_GROUP',
+  CREATE_GROUP: 'CREATE_GROUP',
   GET_GROUP: 'GET_GROUP',
   UPDATE_GROUP: 'UPDATE_GROUP',
   REMOVE_GROUP: 'REMOVE_GROUP',
@@ -33,7 +33,7 @@ export const groupsActionTypes = {
 function groupsReducer(state, action) {
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
-    case (groupsActionTypes.ADD_GROUP): {
+    case (groupsActionTypes.CREATE_GROUP): {
       mutateGroups(action.payload, action.context, 'POST');
       return state;
     }
@@ -68,7 +68,6 @@ function groupsReducer(state, action) {
         return state;
       }
 
-      console.log('action.payload', action.payload);
       //return state if payload < 0 AND the payload is in the original array
       return action.payload.length > 0 &&
         state.find(group => group.name === action.payload[0].name) ?
@@ -91,7 +90,7 @@ function groupsReducer(state, action) {
 
 export default function AdminGroups(props) {
 
-  const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
+  const { dispatchAdminRoles } = useContext(AdminRolesContext);
 
   const { children } = props;
 

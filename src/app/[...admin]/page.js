@@ -16,7 +16,7 @@ import { UserInfoContext, UserPrefContext } from "../layout";
 import Command from './components/commands';
 import AdminCommands from "./components/context/admin/commands";
 import PasswordModal from "./components/PasswordModal/PasswordModal";
-import CommandExecution from "./components/CommandExecution";
+import CommandExecution from "./components/commandExecution";
 
 export default function Admin() {
 

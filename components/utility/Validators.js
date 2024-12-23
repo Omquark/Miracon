@@ -30,7 +30,7 @@ function isValidUUIDv4(uuid) {
   return uuid4Regex.test(uuid);
 }
 
-function isValidUsername(username){
+function isValidUsername(username) {
   const usernameRegex = /^[\w_]+$/
   return usernameRegex.test(username);
 }
@@ -40,6 +40,12 @@ function isValidPassword(password) {
   return passwordRegex.test(password);
 }
 
+//This probably doesn't cover all emails, but should cover most
+function isValidEmail(email) {
+  const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
+  return emailRegex.test(email);
+}
+
 function validateUUIDArray(fieldName) {
   return body(fieldName).isArray().custom((value) => {
     if (!Array.isArray(value)) return false;
@@ -47,4 +53,4 @@ function validateUUIDArray(fieldName) {
   })
 }
 
-module.exports = { validateAndSanitizeUser, validateNameId, isValidUsername, isValidPassword, validateUUIDArray }
+module.exports = { validateAndSanitizeUser, validateNameId, isValidUsername, isValidPassword, isValidEmail, validateUUIDArray }

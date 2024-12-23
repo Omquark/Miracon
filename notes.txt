@@ -48,3 +48,4 @@ TODO:
   Edit server.properties via website
   Enable ability to start server from Miracon?
   Label for MultiSelection overlaps other menus selection when trying to select, fix it
+  Change password endpoint does not appear to work under certain conditions, needs fixed

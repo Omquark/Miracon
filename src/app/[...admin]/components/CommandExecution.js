@@ -40,7 +40,7 @@ export default function CommandExecution() {
       switch (param.type.toUpperCase()) {
         case ('STRING'): {
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <TextBox
                 className={required ? ' bg-red-300 ' : ''}
                 type='text'
@@ -54,7 +54,7 @@ export default function CommandExecution() {
         case ('PLAYER'):
         case ('ENUM'):
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <Selection
                 className=''
                 placeholder={param.name}
@@ -69,7 +69,7 @@ export default function CommandExecution() {
           break;
         case ('BOOLEAN'): {
           body.push((
-            <div key={id}>
+            <div className='my-4' key={id}>
               <CheckBox
                 id={id}
                 placeholder={param.name} />
