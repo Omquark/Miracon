@@ -4,8 +4,8 @@
 # Where the Minecraft server files can be located.
 # Specifically, we need banned-ips.json, banned-player.json, ops.json, and whitelist.json
 # As long as all these file exist, nothing else is needed. You will need the live files if you want to live edit.
-# MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
-MINECRAFT_SERVER_PATH=path/to/minecraft/server
+MINECRAFT_SERVER_PATH=C:\Users\cliff\Desktop\minecraft-server
+# MINECRAFT_SERVER_PATH=path/to/minecraft/server
 
 # The install path of miracon
 # Defaults to /opt/miracon

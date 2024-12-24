@@ -422,7 +422,7 @@ nextApp.prepare().then(async () => {
 
         const updatedUser = await updateUsers({ id: user.id }, user);
 
-        res.status(200).send(JSON.stringify(user))
+        res.status(200).send(JSON.stringify(updatedUser))
     });
 
     app.post('/users', validateNameId, async (req, res) => {

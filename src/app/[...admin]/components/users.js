@@ -179,7 +179,6 @@ export default function User() {
         const saveButton = document.getElementById('save-user');
         const rolesSelection = document.getElementById('UserRoles');
         const groupsSelection = document.getElementById('UserGroups');
-        const groupsSelection = document.getElementById('UserGroups');
 
         saveButton.innerHTML = 'Loading'
         saveButton.disabled = true;
