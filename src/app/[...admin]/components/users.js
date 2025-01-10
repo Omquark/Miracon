@@ -12,8 +12,6 @@ import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
 import { IoMdArrowDropdown } from 'react-icons/io';
 
-//TODO: Need to be able to write user changes. Use form to detect changes and send only what's needed.
-
 export default function User() {
 
     const [modalShown, setModalShown] = useState(false);

@@ -43,7 +43,7 @@ const Group = {
  * @property {string} id A unquie ID to identify this user, by default uses a uuidv4
  * @property {boolean} active Determines if this user is active. Setting this to false effectively disables the user.
  * @property {boolean} changePassword Forces the user to update their password on the next login
- * @property {boolean} critical Defines if the user can be removed form the front end
+ * @property {boolean} critical Defines if the user can be removed form the front end, this does not effect if the active status can be set
  */
 const User = {
     name: 'AdminUser',

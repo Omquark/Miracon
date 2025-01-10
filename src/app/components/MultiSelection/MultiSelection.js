@@ -56,7 +56,6 @@ export default function MultiSelection(props) {
     return (
         <div
             className={'relative w-full my-2 lg:my-3 '}
-            className={'relative w-full my-2 lg:my-3 '}
             id={id}>
             <div className={
                 'duration-300 bg-white dark:bg-black ' +

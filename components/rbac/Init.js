@@ -91,9 +91,10 @@ async function InitUsers() {
       preferences: {},
       roles: [],
       groups: [addedGroups.find(group => group.name.includes(op.level)).id],
-      id: ops.uuid,
+      id: op.uuid,
       active: false,
       changePassword: true,
+      critical: false,
     }
     logEvent(LogLevel.DEBUG, `Adding ${user.name} to created users list`);
     createdUsers.push(user);
@@ -108,6 +109,7 @@ async function InitUsers() {
     groups: [addedGroups.find(group => group.name === ('Level 4')).id],
     active: true,
     changePassword: true,
+    critical: true
   }
 
   createdUsers.push(defaultAdmin);

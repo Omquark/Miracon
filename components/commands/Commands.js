@@ -147,4 +147,15 @@ async function getCommand(name, user,) {
   return foundCommand;
 }
 
-module.exports = { InitCommands, getCommand }
+async function checkCommand(commandName, userInfo) {
+  const foundCmd = await getCommand(commandName, userInfo);
+  if (foundCmd.error) {
+    logEvent(LogLevel.WARN, `There was an error attempting to access command ${commandName}`);
+    return { error: foundCmd.error };
+  }
+
+  return;
+}
+
+
+module.exports = { InitCommands, getCommand, checkCommand }

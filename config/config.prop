@@ -1,5 +1,5 @@
 # Defines variables defualt values and a description.
-#Environment variables are checked first, and if not defined will use what's listed here.
+# Environment variables are checked first, and if not defined will use what's listed here.
 
 # Where the Minecraft server files can be located.
 # Specifically, we need banned-ips.json, banned-player.json, ops.json, and whitelist.json
@@ -44,7 +44,7 @@ WEB_SERVER_PORT=3011
 # Determines if we should create the users from the ops file from the minecraft directory.
 # Setting this to 1 will overwrite the users database with new users/groups to align with minecraft security.
 # Setting this to 0 will preserve the users database.
-INIT_USERS=1
+# INIT_USERS=1
 
 # When set to 1, creates a back-up admin with access to users roles and groups for recovery.
 # This admin will only exist during emergency starts. This should be deleted after use or restart the server

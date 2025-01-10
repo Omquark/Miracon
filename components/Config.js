@@ -151,12 +151,12 @@ function init(reload) {
         logEvent(LogLevel.DEBUG, `installDirectory=${cwd()}`);
     }
 
-    Config.nodeConfig.initUsers = Number.parseInt(getEnvVar('INIT_USERS'));
-    if (Config.nodeConfig.initUsers === undefined || Number.isNaN(Config.nodeConfig.initUsers) ||
-        (Config.nodeConfig.initUsers !== 0 && Config.nodeConfig.initUsers !== 1)) {
-        logEvent(LogLevel.WARN, 'Received an invalid value if to initialize users, this is a fatal error! This value must either be 0(No) or 1(Yes). This must be corrected to continue!');
-        throw new Error('Invalid value for INIT_USERS! This must be either 1 to init or 0 to skip and declared in the config.');
-    }
+    // Config.nodeConfig.initUsers = Number.parseInt(getEnvVar('INIT_USERS'));
+    // if (Config.nodeConfig.initUsers === undefined || Number.isNaN(Config.nodeConfig.initUsers) ||
+    //     (Config.nodeConfig.initUsers !== 0 && Config.nodeConfig.initUsers !== 1)) {
+    //     logEvent(LogLevel.WARN, 'Received an invalid value if to initialize users, this is a fatal error! This value must either be 0(No) or 1(Yes). This must be corrected to continue!');
+    //     throw new Error('Invalid value for INIT_USERS! This must be either 1 to init or 0 to skip and declared in the config.');
+    // }
 
     if (process.env.NODE_ENV === 'development' && process.env.MIRACON_INSTALL_DIRECTORY) {
         logEvent(LogLevel.DEBUG, `Using dev env variable for install path`);

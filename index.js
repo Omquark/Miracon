@@ -21,7 +21,7 @@ const { getUsers, updateUsers, addUsers, removeUsers } = require('./components/r
 const { InitUsers } = require('./components/rbac/Init');
 const { InitCommands, getCommand } = require('./components/commands/Commands');
 const path = require('path');
-const { access, constants } = require('fs');
+const { access, constants, writeFile } = require('fs');
 const { getCommands } = require('./components/rbac/Command');
 const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsername, isValidEmail } = require('./components/utility/Validators');
 const { InitConsoleCommands } = require('./components/commands/ConsoleCommands');
@@ -29,6 +29,8 @@ const { getConsoleCommands } = require('./components/rbac/ConsoleCommand');
 const { RConnection } = require('./components/RConnnection');
 const { bytesFromBase64 } = require('./components/utility/Utility');
 const bcrypt = require('bcrypt');
+const { CreateRole, ReadRole, UpdateRole, DeleteRole } = require('./components/endpoint/roles');
+const { CreateGroup } = require('./components/endpoint/groups');
 
 nextApp.prepare().then(async () => {
 
@@ -42,8 +44,6 @@ nextApp.prepare().then(async () => {
     const bodyParserJsonOptions = {
         limit: '1kb',
     }
-
-    logEvent(LogLevel.DEBUG, `Server password: ${HiddenConfig.minecraftServer.password}`);
 
     const rcon = new RConnection({
         password: HiddenConfig.minecraftServer.password,
@@ -68,10 +68,10 @@ nextApp.prepare().then(async () => {
 
         const userinfo = {};
         userinfo.username = rawBody.username;
-        userinfo.password = rawBody.password;
+        userinfo.password = bytesFromBase64(rawBody.password);
 
         logEvent(LogLevel.DEBUG, `userinfo: ${JSON.stringify(userinfo)}`);
-        if (!isValidPassword(bytesFromBase64(userinfo.password))) {
+        if (!isValidPassword(userinfo.password)) {
             res.status(400).send({ error: 'Password must be alphanumeric and can contain any of !@#$%^&*?\\' });
             return;
         }
@@ -102,35 +102,37 @@ nextApp.prepare().then(async () => {
 
     //Changes the password of the user. You must be logged in to change the password
     app.put('/change_password', async (req, res) => {
+
         if (!req.session.userInfo) {
             res.status(401).send({ error: 'User is not logged in.' });
             return;
         }
 
         const rawBody = req.body;
-        //TODO: Does not work, fix it!
-        if (!rawBody.userinfo && !rawBody.userinfo.oldPassword &&
-            !isValidPassword(rawBody.userinfo.oldPassword) ||
-            !rawBody.userinfo && !rawBody.userinfo.newPassword &&
-            !isValidPassword(rawBody.userinfo.newPassword)) {
-            res.status(400).send({ error: 'Password is not valid, must be alphanumeric or any of !@#$%^&*?\\' });
+
+        if (!rawBody.userinfo || !rawBody.userinfo.oldPassword || !rawBody.userinfo.newPassword) {
+            res.status(400).send({ error: 'One of the old password or new password was not provided. Both must be in order to apply a change.' });
             return;
         }
 
-        //TODO: Blacklist here
-        if (!rawBody?.userinfo?.username || !isValidUsername(rawBody.userinfo.username)) {
-            logEvent(LogLevel.AUDIT, 'A user attempted to change a password, but did not have a session or userinfo, user has been logged out and the session destroyed.');
-            logEvent(LogLevel.AUDIT, 'I am also blacklisting this IP for 15 minutes to prevent any further attempts');
-            logEvent(LogLevel.AUDIT, `userinfo: ${rawBody?.userinfo}, req.session.userinfo: ${req.session.userInfo}`);
-            req.session.destroy();
-            res.redirect('/');
-            return;
-        }
+        console.log(JSON.stringify(rawBody));
 
         const userinfo = {
-            username: req.session.userInfo.name,
-            oldPassword: rawBody.userinfo.oldPassword,
-            newPassword: rawBody.userinfo.newPassword,
+            username: rawBody.userinfo.username,
+            oldPassword: bytesFromBase64(rawBody.userinfo.oldPassword),
+            newPassword: bytesFromBase64(rawBody.userinfo.newPassword),
+        }
+
+        console.log('userinfo', userinfo);
+
+        if (!isValidPassword(userinfo.oldPassword) || !isValidPassword(userinfo.newPassword)) {
+            res.status(400).send({ error: 'The provided password is not valid! A password must be alphanumeric or have the characters !@#$%^&*?\\' });
+            return;
+        }
+
+        if (!isValidUsername(rawBody.userinfo.username)) {
+            res.status(400).send({ error: 'The provided username is not valid! The usernames allowed must be alphanumeric and _' });
+            return;
         }
 
         const message = await updatePassword(userinfo);
@@ -226,83 +228,23 @@ nextApp.prepare().then(async () => {
     }
 
     app.get('/roles', async (req, res) => {
-        const commandError = await checkCommand('READ_ROLE', req.session.userInfo);
-        if (commandError?.error) {
-            res.status(403).send({ error: commandError.error });
-            return;
-        }
-        res.status(200).send(JSON.stringify(await getRoles()));
+        ReadRole(req, res);
     });
 
     app.put('/roles', validateNameId, async (req, res) => {
-        const rawBody = req.body;
-
-        let updated;
-
-        const commandError = await checkCommand('UPDATE_ROLE', req.session.userInfo);
-        if (commandError?.error) {
-            res.status(403).send({ error: commandError.error });
-            return;
-        }
-
-        if ((rawBody.data.name === undefined || rawBody.data.id === undefined)) {
-            logError('A Role was attempted to be updated without an ID! This ID is required to update any roles!');
-            res.status(400).send({ error: 'No ID provided with role! I don\'t know which one to upate without an ID!' });
-            return;
-        }
-
-        updated = await updateRoles({ id: rawBody.data.id }, { name: rawBody.data.name });
-        res.status(200).send(updated);
+        UpdateRole(req, res);
     });
 
     app.post('/roles', validateNameId, async (req, res) => {
-        const rawBody = req.body;
-
-        const commandError = await checkCommand('ADD_ROLE', req.session.userInfo);
-        if (commandError?.error) {
-            res.status(403).send({ error: commandError.error });
-            return;
-        }
-
-        if (rawBody.data === undefined || rawBody.data.name === undefined) {
-            logError('A role was attempted to be added without a name! A name must be specified, ID\'s are ignored')
-            res.status(400).send({ error: 'No name was specified for the role! Please name the role and try again, ID\'s are ignored' });
-            return;
-        }
-
-        const newRole = await addRoles({ name: rawBody.data.name })
-        res.status(200).send(newRole);
+        CreateRole(req, res);
     });
 
     app.delete('/roles', validateNameId, async (req, res) => {
-        const rawBody = req.body;
-
-        const commandError = await checkCommand('DELETE_ROLE', req.session.userInfo);
-        if (commandError?.error) {
-            res.status(403).send({ error: commandError.error });
-            return;
-        }
-
-        if (rawBody.data === undefined || (rawBody.data.name === undefined && rawBody.data.id === undefined)) {
-            logError('A role was attempted to be deleted, but must contain either a role ID or a role name!');
-            res.status(400).send({ error: 'No ID or name supplied to remove the role! Specify which role with either an ID or name and try again.' });
-            return;
-        }
-
-        const removedRole = await removeRoles({ name: rawBody.data.name, id: rawBody.data.id });
-        res.status(200).send(removedRole);
+        DeleteRole(req, res);
     });
 
     app.get('/groups', async (req, res) => {
-
-        const commandError = await checkCommand('READ_GROUP', req.session.userInfo);
-        if (commandError?.error) {
-            res.status(403).send({ error: commandError.error });
-            return;
-        }
-
-        const pulledGroups = await getGroups()
-        res.status(200).send(JSON.stringify(pulledGroups));
+        CreateGroup(req, res);
     });
 
     app.put('/groups', validateNameId, async (req, res) => {
@@ -366,11 +308,26 @@ nextApp.prepare().then(async () => {
             return;
         }
 
+        let foundGroup = await getRoles({ id: rawBody.data.name });
+        if (foundGroup[0].critical) {
+            logEvent(LogLevel.WARN, `Attempted to remove critical group ${foundGroup[0].name}!`);
+            res.status(403).send({ error: `Cannot remove critical group ${foundGroup[0].name}` });
+            return;
+        }
+
+
         const removedGroup = await removeGroups({ name: rawBody.data.name, id: rawBody.data.id });
         res.status(200).send(removedGroup);
     });
 
     app.get('/users', validateNameId, async (req, res) => {
+        const commandError = await checkCommand('READ_USER', req.session.userInfo);
+
+        if (commandError?.error) {
+            res.status(403).send({ error: commandError });
+            return;
+        }
+
         const pulledUsers = (await getUsers()).map(user => {
             user.password = '*********************';
             return user;
@@ -381,46 +338,58 @@ nextApp.prepare().then(async () => {
     app.put('/users', validateNameId, async (req, res) => {
         const rawBody = req.body;
 
-        const commandError = await checkCommand('UPDATE_USER');
+        const commandError = await checkCommand('UPDATE_USER', req.session.userInfo);
         if (commandError?.error) {
-            res.status(403).send({ error: commanderror });
+            res.status(403).send({ error: commandError });
             return;
         }
 
         const password = rawBody.data.password ? bytesFromBase64(rawBody.data.password) : '';
 
+        logEvent(LogLevel.DEBUG, 'Verifying data is present');
         if (!rawBody.data || (!rawBody.data.name && !rawBody.data.email && !rawBody.data.id)) {
             logError('A user was attempted to be updated without a username, email, or ID! At least one of these fields must be provided to update');
             res.status(400).send({ error: "No username, email, or id was provided! You must specifiy one of these to update a user." });
             return;
         }
 
+        logEvent(LogLevel.DEBUG, 'Verifying valid username');
         if (rawBody.data.name && !isValidUsername(rawBody.data.name)) {
+            logError('Username must only contain alphanumeric characters with underscore');
             res.status(400).send({ error: 'Username must only contain alphanumeric characters with underscore' })
             return;
         }
 
-        if (password && !isValidPassword(password)) {
-            res.status(400).send({ error: 'Password must contain alohanumeric characters or any of _!@#$%^&*?' });
-            return;
-        }
+        // logEvent(LogLevel.DEBUG, 'Verifying valid password');
+        // if (password && !isValidPassword(password)) {
+        //     logError('Password must contain alphanumeric characters or any of _!@#$%^&*?');
+        //     res.status(400).send({ error: 'Password must contain alohanumeric characters or any of _!@#$%^&*?' });
+        //     return;
+        // }
 
+        logEvent(LogLevel.DEBUG, 'Verifying valid email (correct characters, not the email is valid itself)');
         if (rawBody.data.email && !isValidEmail(rawBody.data.email)) {
-            res.status(400).send({ error: 'Email is not valid, only alphanumeric chaaracters and _- are allowed' });
+            logError('Email is not valid, only alphanumeric character and _@. are allowed');
+            res.status(400).send({ error: 'Email is not valid, only alphanumeric chaaracters and _@. are allowed' });
             return;
         }
 
+        logEvent(LogLevel.DEBUG, 'Attempting to find the current user to update');
         const user = await getUsers({ id: rawBody.data.id, name: rawBody.data.name, email: rawBody.data.email });
 
-        user.name = rawBody.data.name ? rawBody.data.name : user.name;
-        user.password = rawBody.data.password ? await bcrypt.hash(rawBody.data.password, 14) : user.password;
-        user.email = rawBody.data.email ? rawBody.data.email : user.email;
-        user.roles = rawBody.data.roles ? rawBody.data.roles : user.roles;
-        user.groups = rawBody.data.groups ? rawBody.data.groups : user.groups;
-        user.active = rawBody.data.active ? rawBody.data.active : user.active;
-        user.changePassword = rawBody.data.name ? rawBody.data.name : user.name;
+        user[0].name = rawBody.data.name ? rawBody.data.name : user.name;
+        // user.password = rawBody.data.password ? await bcrypt.hash(rawBody.data.password, 14) : user.password;
+        user[0].email = rawBody.data.email ? rawBody.data.email : user.email;
+        user[0].roles = rawBody.data.roles ? rawBody.data.roles : user.roles;
+        user[0].groups = rawBody.data.groups ? rawBody.data.groups : user.groups;
+        user[0].active = rawBody.data.active !== undefined ? rawBody.data.active : user.active;
+        user[0].changePassword = rawBody.data.changePassword !== undefined ? rawBody.data.changePassword : user.changePassword;
 
-        const updatedUser = await updateUsers({ id: user.id }, user);
+        logEvent(LogLevel.DEBUG, `Updating user ${JSON.stringify(user)}`);
+        logEvent(LogLevel.DEBUG, `rawBody.data ${JSON.stringify(rawBody.data)}`);
+        const updatedUser = await updateUsers({ id: user[0].id, name: user[0].name }, user[0]);
+
+        logEvent(LogLevel.DEBUG, `updatedUser: ${JSON.stringify(updatedUser)}`);
 
         res.status(200).send(JSON.stringify(updatedUser))
     });
@@ -528,6 +497,13 @@ nextApp.prepare().then(async () => {
             return;
         }
 
+        let foundUser = await getUsers({ id: rawBody.data.name });
+        if (foundUser[0].critical) {
+            logEvent(LogLevel.WARN, `Attempted to remove critical user ${foundUser[0].name}!`);
+            res.status(403).send({ error: `Cannot remove critical user ${foundUser[0].name}` });
+            return;
+        }
+
         const user = { name: rawBody.data.name, id: rawBody.data.id, email: rawBody.data.email };
 
         const removedUser = await removeUsers(user);
@@ -589,17 +565,41 @@ nextApp.prepare().then(async () => {
     });
 
     //Initializes the DB if the initializer is set from the config
-    if (Config.nodeConfig.initUsers) {
-        await InitUsers();
-        await InitCommands();
-        await InitConsoleCommands();
-    }
 
-    //Start the server!
-    http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
+    access('./init.lock', constants.F_OK, async (err) => {
+        //If the file does not exist/we do not have access
+        if (err) {
+            logEvent(LogLevel.INFO, 'init.lock could not be found, initializing the database');
+            //Create the file to prevent re-init
+            writeFile('./init.lock', '', (wErr) => {
+                if (wErr) {
+                    logError('Failed to write the init.lock file! Make sure this program has access to the base directory.');
+                    logError(`Error: ${err}`);
+                    process.exit(1);
+                }
+            });
+            //If the file does not exist
+            logEvent(LogLevel.INFO, 'Initializing data...');
+            await InitUsers();
+            await InitCommands();
+            await InitConsoleCommands();
+        } else {
+            logEvent(LogLevel.INFO, 'Skipping initialization...');
+        }
+
+        //Start the server!
+        http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
+        });
+
+        //Log the event to ensure everything is up and good
+        logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
+
     });
 
-    //Log the event to ensure everything is up and good
-    logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
-
+    //TODO: If the above works, remove this from the config
+    // if (Config.nodeConfig.initUsers) {
+    //     await InitUsers();
+    //     await InitCommands();
+    //     await InitConsoleCommands();
+    // }
 });
