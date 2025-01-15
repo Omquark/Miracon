@@ -53,7 +53,8 @@ async function checkAndLoginUser(userInfo) {
     let sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
-        roles: resolvedRoles,
+        roleNames: resolvedRoles,
+        roleIds: userRoles,
         changePassword: pulledUsers[0].changePassword,
     }
 

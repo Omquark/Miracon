@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { effectCommand, pullConsoleCommands } from "./api/consoleCommands";
 import Button from "@/app/components/Button/Button";
 import Selection from "@/app/components/Selection/Selection";
@@ -6,8 +6,11 @@ import TextBox from "@/app/components/TextBox/TextBox";
 import { Flip, ToastContainer, toast } from "react-toastify";
 import Modal from "@/app/components/Modal/Modal";
 import CheckBox from "@/app/components/CheckBox/CheckBox";
+import { UserInfoContext } from "@/app/layout";
 
 export default function CommandExecution() {
+
+  const { userInfo } = useContext(UserInfoContext);
 
   const [consoleCommands, setConsoleCommands] = useState();
   const [modalShown, setModalShown] = useState(false);
@@ -17,7 +20,17 @@ export default function CommandExecution() {
 
   useEffect(() => {
     const setConsoleCommandsState = async () => {
-      const tempCommands = await pullConsoleCommands();
+      const roles = userInfo.roleIds;
+      const tempCommands = (await pullConsoleCommands()).filter(command => {
+        for (const role of roles) {
+          if (command.roles.find(commandRole => {
+            return commandRole === role;
+          })) {
+            return true;
+          }
+        }
+        return false;
+      });
       setConsoleCommands(tempCommands);
     };
     setConsoleCommandsState();
@@ -124,7 +137,6 @@ export default function CommandExecution() {
     const optElems = await createElements(command.optional, false);
     if (optElems?.length > 0) body.push(optElems);
     if (body.length === 0) {
-      console.log(`Executing simple command ${command.name}`);
       executeSimpleCommand(command.name);
       return;
     }
@@ -139,7 +151,7 @@ export default function CommandExecution() {
           enabled={true} >Execute</Button>
         <Button
           className='mx-2 my-2 '
-          onClick={() => hideModal()}
+          onClick={() => setModalShown(false)}
           id='cancel-user'
           type='button'
           enabled={true} >Cancel</Button>
@@ -158,9 +170,7 @@ export default function CommandExecution() {
   }
 
   const callCommand = async (command) => {
-    console.log('command', command);
     const message = await effectCommand(command);
-    console.log('message', message);
     toast(message.message ? message.message : `Error: ${message.error}`);
     setModalShown(false);
   }
@@ -170,7 +180,7 @@ export default function CommandExecution() {
       <Modal
         id='console-modal'
         show={modalShown}
-        setShow={hideModal}
+        setShow={() => setModalShown(false)}
         header={`Parameters for ${modalHeader}`}
         footer={footerButtons}
         static={true} >
@@ -180,17 +190,20 @@ export default function CommandExecution() {
         Array.isArray(consoleCommands) ?
           consoleCommands
             .sort((lhs, rhs) => lhs.name > rhs.name)
-            .map(command =>
-              <div key={command.id}>
-                <Button
-                  className='ms-4 my-5 '
-                  onClick={() => prepareModal(command)}
-                  id={`effect-${command.name}`}
-                  type='button'
-                  enabled={true} >
-                  {command.name}
-                </Button>
-              </div>
+            .map(command => {
+              return (
+                <div key={command.id}>
+                  <Button
+                    className='ms-4 my-5 '
+                    onClick={() => prepareModal(command)}
+                    id={`effect-${command.name}`}
+                    type='button'
+                    enabled={true} >
+                    {command.name}
+                  </Button>
+                </div>
+              )
+            }
             ) : <></> //consoleCommands && Array.isArray(consoleCommands)
       }
       <ToastContainer

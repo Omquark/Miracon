@@ -25,11 +25,11 @@ export default function RootLayout({ children }) {
   const [prefs, setPrefs] = useState(preferences);
   const [userInfo, setUserInfo] = useState(defaultInfo);
 
-  const prefRef = useRef(prefs);
+  // const prefRef = useRef(prefs);
   const testDarkMode = useRef(false);
 
   const setUserPrefs = (userPrefs) => {
-    prefRef.current = userPrefs;
+    // prefRef.current = userPrefs;
     setPrefs(userPrefs);
     testDarkMode.current = !testDarkMode.current;
   }
@@ -39,9 +39,9 @@ export default function RootLayout({ children }) {
     setUserInfo(newInfo);
   }
 
-  useEffect(() => {
-    setPrefs(prefRef.current);
-  }, [prefs]);
+  // useEffect(() => {
+    // setPrefs(prefRef.current);
+  // }, [prefs]);
 
   return (
     <UserPrefContext.Provider value={{ prefs: prefs, setPrefs: setUserPrefs }}>

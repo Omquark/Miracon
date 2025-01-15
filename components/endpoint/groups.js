@@ -1,4 +1,10 @@
+/**
+ * This defines actions related to groups which are called from the endpoints 
+ */
+
 const { checkCommand } = require("../commands/Commands");
+const { logError, logEvent, LogLevel } = require("../Log");
+const { updateGroups, getGroups, addGroups, removeGroups } = require("../rbac/Group");
 
 async function CreateGroup(req, res) {
   const rawBody = req.body;

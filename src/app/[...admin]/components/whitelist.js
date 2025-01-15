@@ -6,6 +6,7 @@ import TextBox from "@/app/components/TextBox/TextBox";
 import { BiRefresh } from 'react-icons/bi'
 import { Tooltip } from "react-tooltip";
 import { ToastContainer, Flip, toast } from "react-toastify";
+import { IoMdArrowDropdown } from "react-icons/io";
 
 export default function Whitelist() {
 
@@ -118,8 +119,19 @@ export default function Whitelist() {
         </>
     )
 
+    const sortBy = (column) => {
+        const newSorted = { ...sorted };
+        if (newSorted.column === column) {
+            newSorted.ascending = !newSorted.ascending;
+        } else {
+            newSorted.column = column;
+            newSorted.ascending = true;
+        }
+        setSorted(newSorted);
+    }
+
     return (
-        <div>
+        <div className='text-center'>
             <Modal
                 id={'WhiteListModal'}
                 show={modalShown}
@@ -130,6 +142,52 @@ export default function Whitelist() {
             >
                 {modalMessage}
             </Modal>
+            <div className='text-lg font-semibold text-red-700 dark:text-red-300 '>
+                <span className='flex justify-center'>
+                    Any entries added will not take effect until the server is restarted.
+                </span>
+                <span>
+                    Use console commands to have an immediate effect.
+                </span>
+            </div>
+            <table className='table-fixed border border-collapse w-full'>
+                <thead>
+                    <tr>
+                        <th className='mx-auto cursor-pointer'>
+                            <div className='flex justify-center' onClick={() => sortBy('uuid')}>
+                                UUID
+                                {
+                                    sorted.column === 'uuid' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
+                        <th className='mx-auto cursor-pointer'>
+                            <div className='flex justify-center' onClick={() => sortBy('name')}>
+                                Name
+                                {
+                                    sorted.column === 'name' ?
+                                        <IoMdArrowDropdown className={`duration-300 text-2xl my-auto ${sorted.ascending ? '' : 'rotate-180'}`} /> :
+                                        <>
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl transform translate-y-1`} />
+                                            <IoMdArrowDropdown className={`duration-300 text-2xl rotate-180 transform -translate-y-1 -translate-x-6`} />
+                                        </>
+                                }
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>UUID</td>
+                        <td>Name</td>
+                    </tr>
+                </tbody>
+            </table>
             <Button
                 onClick={() => showWhitelistModal()}
                 id='cancel-user'

@@ -1,5 +1,10 @@
 const { checkCommand } = require("../commands/Commands");
+const { logError, logEvent, LogLevel } = require("../Log");
 const { addRoles, getRoles, updateRoles, removeRoles } = require("../rbac/Role");
+
+/**
+ * This defines actions related to roles which are called from the endpoints 
+ */
 
 async function CreateRole(req, res) {
   const rawBody = req.body;

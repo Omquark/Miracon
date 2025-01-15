@@ -74,8 +74,8 @@ export default function User() {
         });
 
         const message = (
-            <form
-                onChange={(event) => handleFormChange(event)}>
+            <form>
+                {/* onChange={(event) => handleFormChange(event)}> */}
                 <TextBox
                     className=''
                     type='text'
@@ -145,7 +145,7 @@ export default function User() {
     }
 
     const handleFormChange = (event) => {
-        console.log('Hello from form change placeholder!');
+        // console.log('Hello from form change placeholder!');
     }
 
     const removeUser = () => {
@@ -208,7 +208,7 @@ export default function User() {
             .filter(elem => elem.checked)
             .map(elem => elem.id.split('-')[1]);
 
-        const newGroups = adminRoles.filter(adminGroup => {
+        const newGroups = adminGroups.filter(adminGroup => {
             let match = false;
             groupNames.forEach(groupName => {
                 if (groupName === adminGroup.name) {
@@ -220,7 +220,6 @@ export default function User() {
             .map(adminGroup => adminGroup.id);
 
         changingUser.roles = newRoles;
-        changingUser.groups = newGroups;
         changingUser.groups = newGroups;
 
         await dispatchAdminUsers({ type: updated ? usersActionTypes.UPDATE_USER : usersActionTypes.CREATE_USER, payload: changingUser, context: dispatchAdminUsers });

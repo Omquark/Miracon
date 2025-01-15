@@ -36,10 +36,7 @@ export async function mutateUsers(users, dispatch, verb) {
     }
 
     const payload = { data: users };
-    console.log('users', users);
-    console.log('payload before', payload);
     payload.data.password = bytesToBase64(users.password);
-    console.log('payload after', payload);
 
     try {
         response = await fetch(`http://${location.host}/users`,

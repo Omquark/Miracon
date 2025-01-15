@@ -42,15 +42,14 @@ export default function Home() {
 
     sessionStorage.setItem('username', userInfo.name);
     sessionStorage.setItem('useremail', userInfo.email);
-    sessionStorage.setItem('roles', userInfo.roles);
+    sessionStorage.setItem('roleNames', userInfo.roleNames);
+    sessionStorage.setItem('roleIds', userInfo.roleIds);
     sessionStorage.setItem('changePassword', userInfo.changePassword);
 
     setLoginError({ erred: false, message: '' });
     push('/admin');
 
   }
-
-  const roles = ['Role 1', 'Role 2', 'Role 3', 'Role 4', 'Role 5',];
 
   return (
     <div className={`text-center mt-14 `}>
