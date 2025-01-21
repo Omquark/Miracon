@@ -1,6 +1,8 @@
+const { raw } = require("body-parser");
 const { checkCommand } = require("../commands/Commands");
 const { logError, logEvent, LogLevel } = require("../Log");
 const { addRoles, getRoles, updateRoles, removeRoles } = require("../rbac/Role");
+const { isValidUsername } = require("../utility/Validators");
 
 /**
  * This defines actions related to roles which are called from the endpoints 
@@ -18,6 +20,11 @@ async function CreateRole(req, res) {
   if (rawBody.data === undefined || rawBody.data.name === undefined) {
     logError('A role was attempted to be added without a name! A name must be specified, ID\'s are ignored')
     res.status(400).send({ error: 'No name was specified for the role! Please name the role and try again, ID\'s are ignored' });
+    return;
+  }
+
+  if(!isValidUsername(rawBody.data.name)){
+    res.status(400).send({ error: 'Role name can only contain alphanumeric characters and _'});
     return;
   }
 

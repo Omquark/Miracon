@@ -102,7 +102,9 @@ export default function CommandExecution() {
     const rawList = listResponse.message.split(':')[1];
     //Now split by commas
     const playerList = rawList.split(',').map(player => player.trim());
-    if (playerList[0] === "") playerList[0] = "No players found";
+    if (playerList[0] === "") {
+      playerList[0] = "No players found";
+    }
     return playerList;
   }
 
@@ -146,13 +148,13 @@ export default function CommandExecution() {
         <Button
           className='mx-2 my-2 '
           onClick={() => executeCommand(command.name, true)}
-          id='save-user'
+          id='execute-command'
           type='submit'
           enabled={true} >Execute</Button>
         <Button
           className='mx-2 my-2 '
           onClick={() => setModalShown(false)}
-          id='cancel-user'
+          id='cancel-command'
           type='button'
           enabled={true} >Cancel</Button>
       </>

@@ -41,11 +41,6 @@ function isValidUUIDv4(uuid) {
   return uuid4Regex.test(uuid);
 }
 
-function isValidUsername(username){
-  const usernameRegex = /^[\w_]+$/
-  return usernameRegex.test(username);
-}
-
 /**
  * Checks if the username is valid
  * @param {String} username The username to validate

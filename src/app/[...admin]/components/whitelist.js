@@ -27,6 +27,7 @@ export default function Whitelist() {
     }, []);
 
     const retrieveUser = async () => {
+        //Maybe have this autofire when a user is attempted to be saved instead of with a button.
         setLoading(true);
         let toastMessage;
         let username = document.getElementById('UserName').value;
@@ -182,15 +183,13 @@ export default function Whitelist() {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>UUID</td>
-                        <td>Name</td>
-                    </tr>
+                    {
+                    }
                 </tbody>
             </table>
             <Button
                 onClick={() => showWhitelistModal()}
-                id='cancel-user'
+                id='create-entry'
                 type='button'
                 enabled={true} >
                 Create Entry
@@ -203,9 +202,6 @@ export default function Whitelist() {
                 pauseOnHover
                 transition={Flip}
             />
-            {/* <Button onClick={() => showWhitelistModal()}>
-                Create entry
-            </Button> */}
         </div>
     )
 }

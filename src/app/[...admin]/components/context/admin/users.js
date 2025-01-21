@@ -22,7 +22,7 @@ export const usersActionTypes = {
 /**
  * action object
  * @property {usersActionType} type Action to perform
- * @property {Array<User>} payload An array of users to display the info on-page
+ * @property {Array<User>} payload An array which defines the users to effect a command upon
  * @property {context} context The context used when calling this function. Passed to the API to make dispatch calls
  */
 
