@@ -167,10 +167,10 @@ export default function Role() {
                 </Modal>
             </form>
             <table className='table-fixed border border-collapse w-full'>
-                <thead>
-                    <tr>
+                <thead className=''>
+                    <tr className=''>
                         <th className='mx-auto cursor-pointer' onClick={() => sortBy('id')}>
-                            <div className='flex justify-center '>
+                            <div className='flex justify-center'>
                                 ID
                                 {
                                     sorted.column === 'id' ?

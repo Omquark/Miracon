@@ -35,7 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#Additional
+# Additional
 .vscode
 node_modules
 *.log
+init.lock

@@ -16,7 +16,7 @@ import { UserInfoContext, UserPrefContext } from "../layout";
 import Command from './components/commands';
 import AdminCommands from "./components/context/admin/commands";
 import PasswordModal from "./components/PasswordModal/PasswordModal";
-import CommandExecution from "./components/commandExecution";
+import CommandExecution from "./components/CommandExecution";
 
 export default function Admin() {
 
@@ -33,7 +33,8 @@ export default function Admin() {
             window.location.href = '/';
         }
         const info = {
-            roles: typeof (window) !== "undefined" ? sessionStorage.getItem('roles')?.split(',') : [''],
+            roleNames: typeof (window) !== "undefined" ? sessionStorage.getItem('roleNames')?.split(',') : [''],
+            roleIds: typeof (window) !== "undefined" ? sessionStorage.getItem('roleIds')?.split(',') : [''],
             username: typeof (window) !== "undefined" ? sessionStorage.getItem('username') : '',
             userEmail: typeof (window) !== "undefined" ? sessionStorage.getItem('useremail') : '',
             changePassword: typeof (window) !== 'undefined' ? sessionStorage.getItem('changePassword') === 'true' : false

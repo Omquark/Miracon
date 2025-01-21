@@ -25,11 +25,11 @@ const PACKET_INFO = {
  * @param {PACKET_INFO} packetInfo The packet info to structure into a packet for RCON
  * @returns The fully structured Packet.
  */
-function structPacket(packetInfo){
+function structPacket(packetInfo) {
     const { packetId, packetType } = packetInfo;
 
     //If packets fail, check to make sure the body is not being appened with non-whitspace characters!
-    const packetBody = packetInfo.packetBody ? packetInfo.packetBody.trim() : '';
+    const packetBody = packetInfo.packetBody ? packetInfo.packetBody.toString().trim() : '';
 
     const payloadLength = packetBody ? Buffer.byteLength(packetBody, 'ascii') : 0;
     const size = 4 + 4 + 4 + payloadLength + 2; //ID + Type + Payload + 2 null butes
@@ -41,7 +41,7 @@ function structPacket(packetInfo){
     buffer.writeInt32LE(packetType, 8); //packetType
 
     //Write the packet payload
-    if(packetBody){
+    if (packetBody) {
         buffer.write(packetBody, 12, payloadLength, 'ascii');
     }
 
@@ -57,8 +57,8 @@ function structPacket(packetInfo){
  * @param {Buffer} buffer A Buffer containing the packet info
  * @returns {PACKET_INFO} A PACKET_INFO representing this packet. Also marks packetValid based on size matching.
  */
-function destructPacket(buffer){
-    
+function destructPacket(buffer) {
+
     let id, type, body, valid;
 
     const size = buffer.length - 4;

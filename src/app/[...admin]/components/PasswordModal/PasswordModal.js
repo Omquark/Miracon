@@ -6,7 +6,7 @@ import TextBox from "@/app/components/TextBox/TextBox";
 import { UserInfoContext } from "@/app/layout";
 import { useState, useContext, useEffect } from "react";
 import { changePassword } from "../api/users";
-import { ToastContainer, toast } from "react-toastify";
+import { Flip, ToastContainer, toast } from "react-toastify";
 
 export default function PasswordModal() {
 
@@ -89,11 +89,10 @@ export default function PasswordModal() {
     let passwordResult = await changePassword(newPasswordInfo);
 
     if (!passwordResult.error) {
-      setModalShown(false);
       const newInfo = { ...userInfo, changePassword: false };
-      console.log('newInfo', newInfo);
       setUserInfo(newInfo);
-      toast('Password updated!');
+      // toast('Password updated!', { onClose: () => setModalShown(false) });
+      // setModalShown(false);
     } else {
       toast(passwordResult.error);
       // setResponseText(passwordResult.error)
@@ -125,7 +124,14 @@ export default function PasswordModal() {
         static={true} >
         {modalMessage}
       </Modal>
-      <ToastContainer />
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        closeOnClick
+        pauseOnFocusLoss
+        pauseOnHover
+        transition={Flip}
+      />
     </>
   )
 }

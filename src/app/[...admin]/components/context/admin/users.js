@@ -4,6 +4,7 @@ import { createContext, useReducer, useContext, useEffect } from "react"
 import { pullUsers, mutateUsers } from "../../api/users";
 import { AdminRolesContext, rolesActionTypes } from "./roles";
 import { AdminGroupsContext, groupsActionTypes } from "./groups";
+import { Flip, toast, ToastContainer } from "react-toastify";
 
 const initialUsersState = [{ name: '', id: '' }]
 
@@ -21,7 +22,7 @@ export const usersActionTypes = {
 /**
  * action object
  * @property {usersActionType} type Action to perform
- * @property {Array<User>} payload An array of users to display the info on-page
+ * @property {Array<User>} payload An array which defines the users to effect a command upon
  * @property {context} context The context used when calling this function. Passed to the API to make dispatch calls
  */
 
@@ -45,11 +46,19 @@ function usersReducer(state, action) {
     }
     //Updates a single user
     case (usersActionTypes.UPDATE_USER): {
-      mutateUsers(action.payload, action.context);
-      const newUser = state.find(user => user.id === action.payload.id);
-      newUser.name = action.payload.name;
-      newUser.roles = [...action.payload.roles];
-      const newUsers = [...state];
+      mutateUsers(action.payload, action.context, 'PUT');
+      const newUsers = state.map(user => {
+        if (user.id === action.payload.id) {
+          user.name = action.payload.name;
+          user.password = action.payload.password;
+          user.email = action.payload.email;
+          user.roles = action.payload.roles;
+          user.groups = action.payload.groups;
+          user.active = action.payload.active;
+          user.changePassword = action.payload.changePassword;
+        }
+        return user;
+      });
       return newUsers;
     }
     //Removes a single user
@@ -63,8 +72,12 @@ function usersReducer(state, action) {
     //Used to show the response to the user
     case (usersActionTypes.RESPONSE_USER): {
       if (action.payload.error) {
-        alert(`There was an error while updating the user!\nDetails: ${action.payload.error}`);
-        location.reload();
+        console.log('action', action);
+        toast(
+          `There was an error while updating the user!\nDetails: ${action.payload.error}`,
+          {
+          });
+        // location.reload();
         return state;
       }
 
@@ -103,6 +116,14 @@ export default function AdminUsers(props) {
   return (
     <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>
       {children}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        closeOnClick
+        pauseOnFocusLoss
+        pauseOnHover
+        transition={Flip}
+      />
     </AdminUsersContext.Provider>
   )
 }

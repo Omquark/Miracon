@@ -18,7 +18,8 @@ export default function Header() {
 
     const handleLogout = async () => {
         await logout();
-        setUserInfo({ username: '', userEmail: '', userRoles: ['', ''] });
+        setUserInfo({});
+        sessionStorage.clear();
         window.location.href = '/';
     }
 

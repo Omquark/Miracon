@@ -1,12 +1,10 @@
 function bytesToBase64(bytes) {
-  const binString = String.fromCodePoint(...bytes);
-  return btoa(binString);
+  const binBuffer = Buffer.from(bytes);
+  return binBuffer.toString('base64');
 }
 
 function bytesFromBase64(bytes) {
-  const string = new TextEncoder().encode(bytes);
-  const binString = String.fromCodePoint(...string);
-  return atob(binString);
+  return Buffer.from(bytes, 'base64');
 }
 
 module.exports = { bytesToBase64, bytesFromBase64 }

@@ -36,6 +36,11 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
+    if (!pulledUsers[0].active) {
+        logEvent(LogLevel.INFO, `User ${pulledUsers[0].name} attempted to login but was marked inactive.`)
+        return { error: 'User account is inactive. Please contact an administrator for details.' }
+    }
+
     const resolvedRoles = [];
     const userRoles = await resolveRoles(pulledUsers[0]);
     for (let roleID of userRoles) {
@@ -48,7 +53,8 @@ async function checkAndLoginUser(userInfo) {
     let sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
-        roles: resolvedRoles,
+        roleNames: resolvedRoles,
+        roleIds: userRoles,
         changePassword: pulledUsers[0].changePassword,
     }
 

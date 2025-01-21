@@ -36,10 +36,7 @@ export async function mutateUsers(users, dispatch, verb) {
     }
 
     const payload = { data: users };
-    console.log('users', users);
-    console.log('payload before', payload);
     payload.data.password = bytesToBase64(users.password);
-    console.log('payload after', payload);
 
     try {
         response = await fetch(`http://${location.host}/users`,
@@ -64,7 +61,8 @@ export async function changePassword(userinfo) {
     let response;
     let data;
 
-    userinfo.password = bytesToBase64(userinfo.password);
+    userinfo.oldPassword = bytesToBase64(userinfo.oldPassword);
+    userinfo.newPassword = bytesToBase64(userinfo.newPassword);
 
     try {
         response = await fetch(`http://${location.host}/change_password`,
@@ -79,6 +77,27 @@ export async function changePassword(userinfo) {
     } catch (err) {
         console.log(err);
         data = { error: 'Failed to update password on PUT' }
+    }
+
+    return data;
+}
+
+export async function retrieveUUID(username) {
+    let response;
+    let data;
+
+    try {
+        response = await fetch(`https://playerdb.co/api/player/minecraft/${username}`,
+            {
+                headers: {
+                    'content-type': 'text/html'
+                },
+                method: 'GET',
+            });
+        data = await response.json();
+    } catch (err) {
+        console.log(err);
+        data = { error: `Failed to retrieve user ${username}` }
     }
 
     return data;

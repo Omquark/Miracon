@@ -4,14 +4,14 @@
   "description": "Webpage to allow for common controls of minecraft server",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand ",
-    "_start": "next start",
+    "test": "jest",
+    "test-watch": "jest --runInBand --watch",
     "start": "set NODE_ENV=production&& node index.js > miracon.log 2>&1",
     "dev": "node index.js > miracon.log 2>&1",
     "build": "next build",
     "lint": "npx eslint --ext .js src"
   },
-  "author": "Clifford Huey",
+  "author": "Omquark",
   "license": "ISC",
   "standard": {
     "parser": "babel-eslint"
@@ -30,6 +30,7 @@
     "next": "^15.0.3",
     "node-fetch": "^2.7.0",
     "path": "^0.12.7",
+    "react-tooltip": "^5.28.0",
     "sprightly": "^2.0.1",
     "uuid": "^9.0.1",
     "ws": "^8.14.2"
@@ -48,6 +49,7 @@
     "react-dom": "^18",
     "react-icons": "^4.12.0",
     "react-toastify": "^10.0.5",
+    "supertest": "^7.0.0",
     "tailwindcss": "^3.3.0"
   }
 }
