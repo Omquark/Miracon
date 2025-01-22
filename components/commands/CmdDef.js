@@ -280,16 +280,16 @@ const Commands = [
     "enabled": true
   },
   {
-    "name": "READ_COMMAND",
-    "description": "Allows the user to read commands.",
+    "name": "CREATE_COMMAND",
+    "description": "Allows the user to write a command. This does not require the read commands role, but is difficult to do without it.",
     "roles": [],
     "blacklistRoles": [],
     "requirePassword": false,
     "enabled": true
   },
   {
-    "name": "WRITE_COMMAND",
-    "description": "Allows the user to write a command. This does not require the read commands role, but is difficult to do without it.",
+    "name": "READ_COMMAND",
+    "description": "Allows the user to read commands.",
     "roles": [],
     "blacklistRoles": [],
     "requirePassword": false,
@@ -304,7 +304,7 @@ const Commands = [
     "enabled": true
   },
   {
-    "name": "REMOVE_COMMAND",
+    "name": "DELETE_COMMAND",
     "description": "Allows the user to remove commands.",
     "roles": [],
     "blacklistRoles": [],

@@ -79,13 +79,14 @@ async function getObjects(type, object = undefined) {
  */
 async function updateObjects(type, oldObjects, newObjects) {
     if (!oldObjects || !newObjects) {
-        logEvent(LogLevel.WARN, 'Attempted to update object, but no object was given. You must define which object to update ABD the new object to update to.');
+        logEvent(LogLevel.WARN, 'Attempted to update object, but no object was given. You must define which object to update AND the new object to update to.');
         return [];
     }
 
     const os = Array.isArray(oldObjects) ? [...oldObjects] : [oldObjects];
     const ns = Array.isArray(newObjects) ? [...newObjects] : [newObjects];
 
+    console.log('newObjects', newObjects);
     if (os.length !== ns.length) {
         logEvent(LogLevel.WARN, 'The old objects and new objects must have an equal number passed.');
         logEvent(LogLevel.WARN, 'The old objects will be updated to the new objects in the same order corresponding to the element in the array.');
@@ -173,7 +174,7 @@ async function validateRoles(check) {
         if (!r || !r.id) return;
         logEvent(LogLevel.DEBUG, `cs from check, validateRoles: ${JSON.stringify(cs)}`);
         cs.forEach(c => {
-            if(!c) return;
+            if (!c) return;
             if (!c.roles || c.roles.length === 0) {
                 roleCheck = true;
                 return;

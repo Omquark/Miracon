@@ -361,14 +361,22 @@ access('./init.lock', constants.F_OK, async (err) => {
         logEvent(LogLevel.INFO, 'Skipping initialization...');
     }
 
+    logEvent(LogLevel.DEBUG, `process.env.NODE_ENV=`, process.env.NODE_ENV);
     //Start the server!
     if (process.env.NODE_ENV !== 'test') {
+        logEvent(LogLevel.DEBUG, 'Starting server in non-test mode')
         nextApp.prepare().then(async () => {
+            http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
+            });
+            //Log the event to show everything is up and good
+            logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
         });
-        http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
-        });
-        //Log the event to show everything is up and good
-        logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
+    } else {
+
+        // http.createServer(app).listen(Config.nodeConfig.port, (req, res) => {
+        // });
+        // //Log the event to show everything is up and good
+        // logEvent(LogLevel.INFO, `Server is listening on port ${Config.nodeConfig.port}`);
     }
 });
 
