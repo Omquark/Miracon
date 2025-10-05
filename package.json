@@ -7,7 +7,7 @@
     "test": "jest",
     "test-watch": "jest --runInBand --watch",
     "start": "set NODE_ENV=production&& node index.js > miracon.log 2>&1",
-    "dev": "node index.js > miracon.log 2>&1",
+    "dev": "set NODE_ENV=development&& node index.js > miracon.log 2>&1",
     "build": "next build",
     "lint": "npx eslint --ext .js src"
   },

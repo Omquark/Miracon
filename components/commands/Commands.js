@@ -59,7 +59,6 @@ async function InitCommands() {
   }
 
   await checkForRole();
-
 }
 
 /**
