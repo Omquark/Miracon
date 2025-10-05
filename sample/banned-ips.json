@@ -1,0 +1,9 @@
+[
+  {
+    "ip": "192.168.1.110",
+    "created": "2025-01-08 23:25:31 -0500",
+    "source": "Server",
+    "expires": "2025-01-08 23:26:30 -0500",
+    "reason": "Banned by an operator."
+  }
+]

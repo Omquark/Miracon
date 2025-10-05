@@ -6,17 +6,19 @@ import TextBox from "@/app/components/TextBox/TextBox";
 import { UserInfoContext } from "@/app/layout";
 import { useState, useContext, useEffect } from "react";
 import { changePassword } from "../api/users";
+import { Flip, ToastContainer, toast } from "react-toastify";
 
 export default function PasswordModal() {
 
   const [modalShown, setModalShown] = useState(false);
   const [modalMessage, setModalMessage] = useState(<></>);
   const [responseText, setResponseText] = useState('');
+  const [waiting, setWaiting] = useState(false);
 
   const { userInfo, setUserInfo } = useContext(UserInfoContext);
 
   useEffect(() => {
-    // showPasswordModal();
+    showPasswordModal();
   }, []);
 
   const newChange = () => {
@@ -61,7 +63,6 @@ export default function PasswordModal() {
     )
 
     setModalMessage(message);
-    console.log(userInfo)
     setModalShown(userInfo.changePassword);
   }
 
@@ -69,11 +70,15 @@ export default function PasswordModal() {
     const oldPassword = document.getElementById('oldPassword')?.value;
     const newPassword = document.getElementById('newPassword')?.value;
     const confirmPassword = document.getElementById('confirmPassword')?.value;
+    const saveButton = document.getElementById('save-button');
 
     if ((!oldPassword || !newPassword || !confirmPassword) ||
       newPassword !== confirmPassword || !/^[\w!@#$%^&*?\\]+$/.test(newPassword)) {
       return;
     }
+
+    setWaiting(true);
+    saveButton.disabled = true;
 
     const newPasswordInfo = {
       username: userInfo.username,
@@ -84,11 +89,17 @@ export default function PasswordModal() {
     let passwordResult = await changePassword(newPasswordInfo);
 
     if (!passwordResult.error) {
-      setModalShown(false);
-      setUserInfo({ ...userInfo, changePassword: false })
+      const newInfo = { ...userInfo, changePassword: false };
+      setUserInfo(newInfo);
+      // toast('Password updated!', { onClose: () => setModalShown(false) });
+      // setModalShown(false);
     } else {
-      setResponseText(passwordResult.error)
+      toast(passwordResult.error);
+      // setResponseText(passwordResult.error)
     }
+    setWaiting(false);
+    saveButton.disabled = false;
+    // return;
   }
 
   const footerButtons = (
@@ -98,19 +109,29 @@ export default function PasswordModal() {
         onClick={savePassword}
         id='save-button'
         type='submit'
-        enabled={true}>Save</Button>
+        enabled={true}>{waiting ? 'Saving...' : 'Save'}</Button>
     </>
   )
 
   return (
-    <Modal
-      id={'PasswordModal'}
-      show={modalShown}
-      setShow={showPasswordModal}
-      header={`Change password`}
-      footer={footerButtons}
-      static={true} >
-      {modalMessage}
-    </Modal>
+    <>
+      <Modal
+        id={'PasswordModal'}
+        show={modalShown}
+        setShow={showPasswordModal}
+        header={`Change password`}
+        footer={footerButtons}
+        static={true} >
+        {modalMessage}
+      </Modal>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        closeOnClick
+        pauseOnFocusLoss
+        pauseOnHover
+        transition={Flip}
+      />
+    </>
   )
 }

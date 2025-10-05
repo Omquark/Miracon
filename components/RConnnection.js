@@ -27,7 +27,7 @@ class RConnection {
         }
         ({
             password: this.password = 'password',
-            serverAddress: this.serverAddress = 'minecraft',
+            serverAddress: this.serverAddress = 'localhost',
             serverPort: this.serverPort = 25575
         } = options);
 
@@ -48,6 +48,8 @@ class RConnection {
                 return resolve('Socket is already open!')
             }
 
+            logEvent(LogLevel.DEBUG, `Creating Auth packet info serverAddress: ${this.serverAddress}, serverPort: ${this.serverPort}, password: ${this.password}`);
+
             const authPacket = structPacket({
                 packetId: 0x10,
                 packetType: PACKET_TYPE.PACKET_AUTH,
@@ -61,13 +63,14 @@ class RConnection {
 
 
             this.socket.on('error', (err) => {
-                logError(`There was an error with th eRCON connection: ${JSON.stringify(err)}`);
+                logError(`There was an error with the RCON connection: ${JSON.stringify(err)}`);
                 return reject(err);
-            })
+            });
 
             this.socket.once('data', (data) => {
                 const response = destructPacket(data);
                 let message;
+                logEvent(LogLevel.DEBUG, `Response from server ${JSON.stringify(response)}`);
                 if (response.packetId === -1) {
                     message = 'Failed to get connection to RCON. This is likely due to invalid credentials. Check your password and settings and try again.'
                     logError(message);
@@ -89,7 +92,7 @@ class RConnection {
             });
 
             this.socket.on('timeout', async () => {
-                const message = 'The socket has timed out, the conenction will be closed.'
+                const message = 'The socket has timed out, the connection will be closed.'
                 logEvent(LogLevel.INFO, message);
                 await this.socket.destroy();
             });

@@ -3,7 +3,7 @@ import { IoMdArrowDropdown } from "react-icons/io";
 
 export default function Selection(props) {
 
-    const { className, id, placeholder, values, selected } = props;
+    const { className, id, placeholder, values, selected, nullSelection } = props;
 
     const [vals, setVals] = useState(['']);
     const [selectedValue, setSelectedValue] = useState('');
@@ -12,7 +12,7 @@ export default function Selection(props) {
     const dropdownRef = useRef(undefined)
 
     useEffect(() => {
-        setVals(['none', ...values]);
+        setVals(nullSelection ? ['none', ...values] : [...values]);
         setSelectedValue(selected ? selected : values[0]);
 
         document.addEventListener('mousedown', (event) => handleOutsideClick(event));
@@ -44,7 +44,7 @@ export default function Selection(props) {
                 value={selectedValue} />
             <label
                 className={
-                    'absolute transform -top-3 scale-75 left-0 bg-white z-10 ' +
+                    'absolute transform -top-3 scale-75 left-0 bg-white ' +
                     'px-0.5 mx-2.5 ' +
                     ' ' +
                     ' '

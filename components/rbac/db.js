@@ -230,8 +230,15 @@ async function initDatabase() {
   await checkConnection();
   const tables = ['users', 'groups', 'roles', 'commands', 'console_commands']
   for (tableName of tables) {
-    await client.db().dropCollection(tableName);
-    await client.db().createCollection(tableName);
+    try {
+      await client.db().dropCollection(tableName);
+      await client.db().createCollection(tableName);
+    } catch (err) {
+      logError('Failed to connect to the database server! Check the connection is running and the address and port are correct!');
+      logError(`${err}`);
+      logError('Exiting...');
+      process.exit(1);
+    }
   }
 
   await createIndexes();

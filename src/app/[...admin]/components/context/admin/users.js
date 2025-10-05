@@ -1,16 +1,17 @@
 'use client'
 
 import { createContext, useReducer, useContext, useEffect } from "react"
-import { pullUsers, saveUsers } from "../../api/users";
+import { pullUsers, mutateUsers } from "../../api/users";
 import { AdminRolesContext, rolesActionTypes } from "./roles";
 import { AdminGroupsContext, groupsActionTypes } from "./groups";
+import { Flip, toast, ToastContainer } from "react-toastify";
 
 const initialUsersState = [{ name: '', id: '' }]
 
 export const AdminUsersContext = createContext();
 
 export const usersActionTypes = {
-  ADD_USER: 'ADD_USER',
+  CREATE_USER: 'CREATE_USER',
   GET_USER: 'GET_USER',
   UPDATE_USER: 'UPDATE_USER',
   REMOVE_USER: 'REMOVE_USER',
@@ -21,7 +22,7 @@ export const usersActionTypes = {
 /**
  * action object
  * @property {usersActionType} type Action to perform
- * @property {Array<User>} payload An array of users to display the info on-page
+ * @property {Array<User>} payload An array which defines the users to effect a command upon
  * @property {context} context The context used when calling this function. Passed to the API to make dispatch calls
  */
 
@@ -34,8 +35,8 @@ export const usersActionTypes = {
 function usersReducer(state, action) {
   switch (action.type.toUpperCase()) {
     //Hits the endpoint to add
-    case (usersActionTypes.ADD_USER): {
-      console.log('adding users placeholder');
+    case (usersActionTypes.CREATE_USER): {
+      mutateUsers(action.payload, action.context, 'POST');
       return state;
     }
     //Retrieves and updates all users
@@ -45,27 +46,45 @@ function usersReducer(state, action) {
     }
     //Updates a single user
     case (usersActionTypes.UPDATE_USER): {
-      // COMMENT: action object = { type: "UPDATE_USER", payload: { newUser }, context: context for THIS reducer function}
-      saveUsers(action.payload, action.context);
-      const newUser = state.find(user => user.id === action.payload.id);
-      newUser.name = action.payload.name;
-      newUser.roles = [...action.payload.roles];
-      const newUsers = [...state];
+      mutateUsers(action.payload, action.context, 'PUT');
+      const newUsers = state.map(user => {
+        if (user.id === action.payload.id) {
+          user.name = action.payload.name;
+          user.password = action.payload.password;
+          user.email = action.payload.email;
+          user.roles = action.payload.roles;
+          user.groups = action.payload.groups;
+          user.active = action.payload.active;
+          user.changePassword = action.payload.changePassword;
+        }
+        return user;
+      });
       return newUsers;
     }
     //Removes a single user
     case (usersActionTypes.REMOVE_USER): {
-      console.log('removing users')
-      return state;
+      mutateUsers(action.payload, action.context, 'DELETE');
+      const removeUserIndex = state.findIndex(user => user.id === action.payload.id || user.name === action.payload.name || user.email === action.payload.email);
+      const newState = [...state];
+      newState.splice(removeUserIndex, 1);
+      return newState;
     }
     //Used to show the response to the user
     case (usersActionTypes.RESPONSE_USER): {
       if (action.payload.error) {
-        alert(`There was an error while updating the user!\nDetails: ${action.payload.error}`);
-        location.reload();
+        console.log('action', action);
+        toast(
+          `There was an error while updating the user!\nDetails: ${action.payload.error}`,
+          {
+          });
+        // location.reload();
         return state;
       }
-      return state;
+
+      return action.payload.length > 0 &&
+        state.find(user => user.name === action.payload[0].name) ?
+        state :
+        [...state, ...action.payload];
     }
     //Updates the users with the payload sent. Used with pullUsers, this is called by the API
     case (usersActionTypes.REFRESH_USER): {
@@ -82,8 +101,8 @@ function usersReducer(state, action) {
 
 export default function AdminUsers(props) {
 
-  const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
-  const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
+  const { dispatchAdminRoles } = useContext(AdminRolesContext);
+  const { dispatchAdminGroups } = useContext(AdminGroupsContext);
 
   const { children } = props;
 
@@ -95,8 +114,16 @@ export default function AdminUsers(props) {
   }, [dispatchAdminGroups, dispatchAdminRoles])
 
   return (
-      <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>
-        {children}
-      </AdminUsersContext.Provider>
+    <AdminUsersContext.Provider value={{ adminUsers: adminUsers, dispatchAdminUsers: dispatchAdminUsers }}>
+      {children}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        closeOnClick
+        pauseOnFocusLoss
+        pauseOnHover
+        transition={Flip}
+      />
+    </AdminUsersContext.Provider>
   )
 }

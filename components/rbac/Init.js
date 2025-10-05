@@ -8,15 +8,13 @@ const { addRoles, getRoles } = require("./Role");
 const { addGroups } = require("./Group");
 const { initDatabase } = require("./db");
 
+/**
+ * Initilizes the users for access to Miracon. This will read from the ops.json file. If this file does not exist, this will fail.
+ */
 async function InitUsers() {
 
   logEvent(LogLevel.INFO, 'Initializing the user/roles database.');
   await initDatabase();
-
-  // logEvent(LogLevel.INFO, 'Clearing out the old roles');
-  // let oldRoles = await getRoles();
-  // removeRoles(oldRoles);
-  //removeRoles(await getRoles());
 
   logEvent(LogLevel.INFO, 'Creating the default roles to align with minecraft security levels');
   const createdRoles = [
@@ -31,7 +29,6 @@ async function InitUsers() {
   const newRoles = await getRoles(createdRoles);
 
   logEvent(LogLevel.INFO, 'Clearing out the old groups');
-  // await removeGroups(await getGroups());
 
   logEvent(LogLevel.INFO, 'Creating the new groups to align with minecraft security level');
 
@@ -94,9 +91,10 @@ async function InitUsers() {
       preferences: {},
       roles: [],
       groups: [addedGroups.find(group => group.name.includes(op.level)).id],
-      id: ops.uuid,
+      id: op.uuid,
       active: false,
       changePassword: true,
+      critical: false,
     }
     logEvent(LogLevel.DEBUG, `Adding ${user.name} to created users list`);
     createdUsers.push(user);
@@ -111,6 +109,7 @@ async function InitUsers() {
     groups: [addedGroups.find(group => group.name === ('Level 4')).id],
     active: true,
     changePassword: true,
+    critical: true
   }
 
   createdUsers.push(defaultAdmin);
@@ -121,7 +120,7 @@ async function InitUsers() {
   for (user of createdUsers) {
     try {
       logEvent(LogLevel.DEBUG, `Hashing password for ${user.name}`);
-      user.password = bcrypt.hashSync(user.password, 14);
+      user.password = await bcrypt.hash(user.password, 14);
       await addUsers(user);
     }
     catch (err) {

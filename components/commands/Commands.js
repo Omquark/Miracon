@@ -5,6 +5,12 @@ const { addRoles, getRoles } = require('../rbac/Role');
 const { getUsers, updateUsers } = require('../rbac/User');
 const { addCommands, getCommands } = require('../rbac/Command');
 
+
+/**
+ * Initiliazes the commands for the minecraft server. This will remove any related data currently in the MongoDB.
+ * All roles added here will need to be flagged so they cannot be removed.
+ * @returns undefined
+ */
 async function InitCommands() {
   logEvent(LogLevel.INFO, 'Initializing the command roles database! This will remove any existing command role relationships.');
   logEvent(LogLevel.INFO, 'Creating roles to assign to commands.');
@@ -13,9 +19,8 @@ async function InitCommands() {
 
   //Create a role for each command listed in the comDef object. Name them with the same name for the hell of it(simplicity)
   for (command of cmdDef.Commands) {
-    // cmdDef.Commands.forEach(async command => {
     logEvent(LogLevel.DEBUG, `Adding role for command ${command.name}`);
-    await addRoles({ name: command.name });
+    await addRoles({ name: command.name, critical: true });
     const addedRole = await getRoles({ name: command.name });
     logEvent(LogLevel.DEBUG, `addedRole: ${JSON.stringify(addedRole)}`)
 
@@ -28,7 +33,6 @@ async function InitCommands() {
     logEvent(LogLevel.INFO, `Role ${addedRole[0].name} has been bound to command ${command.name}.`);
     await addCommands(command);
   }
-  // });
 
   logEvent(LogLevel.INFO, 'Creating group for admin access to commands');
   await addGroups(commandAdminGroup);
@@ -55,7 +59,6 @@ async function InitCommands() {
   }
 
   await checkForRole();
-
 }
 
 /**
@@ -95,7 +98,7 @@ function CheckAuthorization(checkRoles, validateCmd) {
  * 
  * @param {string} name The name of the command to execute to get
  * @param {object} user The user, containing at least the user name or id
- * @returns 
+ * @returns Either the command, or an object { error: "error message" }
  */
 async function getCommand(name, user,) {
   if (!name) {
@@ -104,7 +107,7 @@ async function getCommand(name, user,) {
   }
   if (!user || (!user.name && !user.id)) {
     logEvent(LogLevel.AUDIT, `Attempted to execute command ${name.toUpperCase()}, but the user was not defined, or is incomplete! user: ${JSON.stringify(user)}`);
-    return { error: `user or username was not defined!` };
+    return { error: `User or username was not defined!` };
   }
   logEvent(LogLevel.DEBUG, `Attempting to find command ${name.toUpperCase()} by ${user.name}`);
   //const foundCommand = cmdDef.Commands.find(cmd => cmd.name.toUpperCase() === name.toUpperCase());
@@ -143,4 +146,15 @@ async function getCommand(name, user,) {
   return foundCommand;
 }
 
-module.exports = { InitCommands, getCommand }
+async function checkCommand(commandName, userInfo) {
+  const foundCmd = await getCommand(commandName, userInfo);
+  if (foundCmd.error) {
+    logEvent(LogLevel.WARN, `There was an error attempting to access command ${commandName}`);
+    return { error: foundCmd.error };
+  }
+
+  return;
+}
+
+
+module.exports = { InitCommands, getCommand, checkCommand }

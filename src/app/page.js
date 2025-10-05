@@ -5,8 +5,6 @@ import Button from './components/Button/Button'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from './api/login';
-import Selection from './components/Selection/Selection';
-import MultiSelection from './components/MultiSelection/MultiSelection';
 
 export default function Home() {
 
@@ -25,6 +23,11 @@ export default function Home() {
       password: document.getElementById('password').value,
     }
 
+    if (info.username === '' || info.password === '') {
+      setLoginError({ erred: true, message: "Username and password must not be empty!" });
+      return;
+    }
+
     updateLogin(true);
 
     const userInfo = await login(info);
@@ -39,15 +42,14 @@ export default function Home() {
 
     sessionStorage.setItem('username', userInfo.name);
     sessionStorage.setItem('useremail', userInfo.email);
-    sessionStorage.setItem('roles', userInfo.roles);
+    sessionStorage.setItem('roleNames', userInfo.roleNames);
+    sessionStorage.setItem('roleIds', userInfo.roleIds);
     sessionStorage.setItem('changePassword', userInfo.changePassword);
 
     setLoginError({ erred: false, message: '' });
     push('/admin');
 
   }
-
-  const roles = ['Role 1', 'Role 2', 'Role 3', 'Role 4', 'Role 5',];
 
   return (
     <div className={`text-center mt-14 `}>

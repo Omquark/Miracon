@@ -41,7 +41,7 @@ jest.doMock('../Config', () => {
           initUsers: true,
         },
         dbConfig: {
-          dbname: 'miracon',
+          dbname: 'miracon-test',
           url: 'localhost',
           port: 27017,
           username: 'miracon',

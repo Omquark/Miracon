@@ -8,7 +8,7 @@ import { UserInfoContext, UserPrefContext } from "@/app/layout";
 export default function Sidebar() {
 
     const { prefs, setPrefs } = useContext(UserPrefContext);
-    const { userInfo, setUserInfo } = useContext(UserInfoContext);
+    const { userInfo } = useContext(UserInfoContext);
 
     const [userMgt, setUserMgt] = useState([]);
     const [whiteBanMgt, setWhiteBanMgt] = useState([]);
@@ -17,7 +17,7 @@ export default function Sidebar() {
     useEffect(() => {
         let roles;
 
-        roles = userInfo?.roles;
+        roles = userInfo?.roleNames;
 
         const umgt = [];
         const wmgt = [];

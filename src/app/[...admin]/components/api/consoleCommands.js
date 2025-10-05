@@ -29,12 +29,16 @@ export async function effectCommand(commandName) {
           'content-type': 'application/json',
         },
         body: JSON.stringify({ name: commandName }),
-        method: 'PUT'
+        method: 'POST'
       });
     data = await response.json();
+    if (data?.error?.code) {
+      data = { error: data.error.code }
+    }
   } catch (err) {
     console.log(err);
-    data = { error: 'Failed to access /console on PUT!' };
+    data = { error: 'Failed to access /console on POST!' };
   }
+  console.log('data', data);
   return data;
 }

@@ -4,6 +4,7 @@ const { logEvent, LogLevel } = require("../Log");
 const { getUsers, updateUsers } = require("../rbac/User");
 const { resolveRoles } = require("../rbac/Group");
 const { getRoles } = require('../rbac/Role');
+const { bytesFromBase64, } = require('../utility/Utility');
 
 /**
  * Checkes the userInfo against the User db to confirm username and password.
@@ -35,6 +36,11 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'The username or password was not valid!' };
     }
 
+    if (!pulledUsers[0].active) {
+        logEvent(LogLevel.INFO, `User ${pulledUsers[0].name} attempted to login but was marked inactive.`)
+        return { error: 'User account is inactive. Please contact an administrator for details.' }
+    }
+
     const resolvedRoles = [];
     const userRoles = await resolveRoles(pulledUsers[0]);
     for (let roleID of userRoles) {
@@ -47,21 +53,33 @@ async function checkAndLoginUser(userInfo) {
     let sessionInfo = {
         name: pulledUsers[0].name,
         email: pulledUsers[0].email,
-        roles: resolvedRoles,
+        roleNames: resolvedRoles,
+        roleIds: userRoles,
         changePassword: pulledUsers[0].changePassword,
     }
 
     return sessionInfo;
 }
 
+/**
+ * Updates a password to a new password. This will verify the password is not identical to the old password,
+ * but does not validate password strength. The passwords passed here are plain text.
+ * @param {Object} userinfo An object of { username, newPassword, oldPassword }
+ * @returns An Object with either an erro property or message property.
+ * error confirms the change failed. message confirms the update succeeded.
+ */
 async function updatePassword(userinfo) {
     const user = (await getUsers({ name: userinfo.username }))[0];
     if (!user) {
-        return { error: 'User could not be found to update password!' }
+        return { error: 'User could not be found to update password!' };
     }
     let passwordMatch = await bcrypt.compare(userinfo.oldPassword, user.password);
     if (!passwordMatch) {
-        return { error: 'Old password does not match!' }
+        return { error: 'Old password does not match!' };
+    }
+    passwordMatch = await bcrypt.compare(userinfo.newPassword, user.password);
+    if (passwordMatch) {
+        return { error: 'New password must not be the same as old password' };
     }
 
     let newPassword = await bcrypt.hash(userinfo.newPassword, 14);
@@ -69,15 +87,4 @@ async function updatePassword(userinfo) {
     return { message: 'Password updated' };
 }
 
-function bytesToBase64(bytes) {
-    const binString = String.fromCodePoint(...bytes);
-    return btoa(binString);
-}
-
-function bytesFromBase64(bytes) {
-    const string = new TextEncoder().encode(bytes);
-    const binString = String.fromCodePoint(...string);
-    return atob(binString);
-}
-
-module.exports = { checkAndLoginUser, updatePassword, bytesFromBase64, bytesToBase64 }
+module.exports = { checkAndLoginUser, updatePassword, }
