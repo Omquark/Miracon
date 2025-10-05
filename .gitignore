@@ -40,3 +40,4 @@ next-env.d.ts
 node_modules
 *.log
 init.lock
+*/config/config.prop
