@@ -121,13 +121,13 @@ export default function User() {
                     className=''
                     id='UserChangePassword'
                     placeholder='Change Password'
-                    defaultChecked={user.changePassword ? true : undefined}
+                    defaultChecked={user.changePassword ? true : false}
                 />
                 <CheckBox
                     className=''
                     id='UserActive'
                     placeholder='Active'
-                    defaultChecked={user.active ? true : undefined}
+                    defaultChecked={user.active ? true : false}
                 />
             </form>
         )
@@ -138,14 +138,16 @@ export default function User() {
         const saveButton = document.getElementById('save-user');
         const createButton = document.getElementById('create-user');
         const removeButton = document.getElementById('remove-user');
+        const changePassword = document.getElementById('UserChangePassword');
+        if (changePassword) changePassword.checked = user.changePassword;
+        const active = document.getElementById('UserActive');
+        if (active) active.checked = user.active;
+
+        console.log(user);
 
         saveButton.hidden = undefined;
         createButton.hidden = true;
         removeButton.hidden = undefined;
-    }
-
-    const handleFormChange = (event) => {
-        // console.log('Hello from form change placeholder!');
     }
 
     const removeUser = () => {

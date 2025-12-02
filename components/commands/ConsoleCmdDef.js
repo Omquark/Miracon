@@ -33,6 +33,14 @@ const ConsoleCommands = [
     'blacklistRoles': [''],
   },
   {
+    'name': 'ban-ip',
+    'description': 'Adds IP to the ban list',
+    'required': [{ name: 'IP', type: 'string' }],
+    'optional': [{ name: 'reason', type: 'string' }],
+    'roles': ['Level 3'],
+    'blacklistRoles': [''],
+  },
+  {
     'name': 'clear',
     'description': 'Clears a player\'s inventory.',
     'required': [{ name: 'Player', type: 'player' }],
@@ -50,7 +58,7 @@ const ConsoleCommands = [
   },
   {
     'name': 'kick',
-    'description': 'Kicks target player from a server. If a reason is given, the player will see it ',
+    'description': 'Kicks target player from a server. If a reason is given, the player will see it.',
     'required': [{ name: 'Target', type: 'player', }],
     'optional': [{ name: 'Reason', type: 'string', }],
     'roles': ['Level 2'],

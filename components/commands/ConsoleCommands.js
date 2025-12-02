@@ -28,4 +28,8 @@ async function InitConsoleCommands() {
   }
 }
 
+async function CheckAuthorization(consoleCommand, userInfo) {
+  consoleCommand.roles.find()
+}
+
 module.exports = { InitConsoleCommands }
