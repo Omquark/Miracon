@@ -47,3 +47,4 @@ TODO:
   ops management
   Edit server.properties via website
   Enable ability to start server from Miracon?
+  Certificate authority management.
