@@ -103,6 +103,55 @@ async function writeData(type, object) {
   return false;
 }
 
+async function writeManyData(type, objects) {
+  checkConnection();
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return [];
+  }
+
+  const targetCollection = await getCollection(type);
+  if (!targetCollection) {
+    return objects.map(() => false);
+  }
+
+  const validIndexes = [];
+  const ops = [];
+  for (let i = 0; i < objects.length; i++) {
+    const object = objects[i];
+    if (!object || !object.id || !object.name) {
+      continue;
+    }
+    validIndexes.push(i);
+    ops.push({ insertOne: { document: object } });
+  }
+
+  const result = objects.map(() => false);
+  if (ops.length === 0) {
+    return result;
+  }
+
+  try {
+    await targetCollection.bulkWrite(ops, { ordered: false });
+    validIndexes.forEach(index => {
+      result[index] = true;
+    });
+    return result;
+  } catch (err) {
+    const failedWriteIndexes = new Set(
+      (err?.writeErrors || []).map(writeError => writeError.index)
+    );
+    for (let i = 0; i < validIndexes.length; i++) {
+      if (!failedWriteIndexes.has(i)) {
+        result[validIndexes[i]] = true;
+      }
+    }
+    if (!err?.writeErrors) {
+      logError(err);
+    }
+    return result;
+  }
+}
+
 /**
  * Rither reads a single document from the collection given, or will return all documents if the object passed is undefined
  * @param {string} type The type of object to find
@@ -148,6 +197,54 @@ async function readData(type, object = undefined) {
   return foundObj;
 }
 
+async function readManyData(type, objects) {
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return [];
+  }
+
+  const targetCollection = await getCollection(type);
+  if (!targetCollection) {
+    return objects.map(() => undefined);
+  }
+
+  const filters = [];
+  const normalizedObjects = objects.map(object => {
+    if (!object || (!object.id && !object.name)) {
+      return undefined;
+    }
+    const searchObject = {};
+    if (object.id) searchObject.id = object.id;
+    if (object.name) searchObject.name = object.name;
+    filters.push(searchObject);
+    return searchObject;
+  });
+
+  if (filters.length === 0) {
+    return objects.map(() => undefined);
+  }
+
+  const pulled = await targetCollection.find({ $or: filters }).toArray();
+  const byId = new Map();
+  const byName = new Map();
+  pulled.forEach(document => {
+    if (document.id !== undefined) byId.set(document.id, document);
+    if (document.name !== undefined) byName.set(document.name, document);
+  });
+
+  return normalizedObjects.map(searchObject => {
+    if (!searchObject) return undefined;
+    if (searchObject.id && searchObject.name) {
+      const byExactId = byId.get(searchObject.id);
+      if (byExactId && byExactId.name === searchObject.name) {
+        return byExactId;
+      }
+      return pulled.find(document => document.id === searchObject.id && document.name === searchObject.name);
+    }
+    if (searchObject.id) return byId.get(searchObject.id);
+    return byName.get(searchObject.name);
+  });
+}
+
 async function updateData(type, oldObject, newObject) {
   let targetCollection;
   logEvent(LogLevel.INFO, 'Attempting to update data within the MongoDB.');
@@ -191,6 +288,77 @@ async function updateData(type, oldObject, newObject) {
   return false;
 }
 
+async function updateManyData(type, oldObjects, newObjects) {
+  if (!Array.isArray(oldObjects) || !Array.isArray(newObjects) || oldObjects.length !== newObjects.length) {
+    return [];
+  }
+
+  const targetCollection = await getCollection(type);
+  if (!targetCollection) {
+    return oldObjects.map(() => false);
+  }
+
+  const existing = await readManyData(type, oldObjects);
+  const operations = [];
+  const opToSourceIndex = [];
+  const results = oldObjects.map(() => false);
+
+  for (let i = 0; i < oldObjects.length; i++) {
+    if (!existing[i]) {
+      continue;
+    }
+    const oldObject = oldObjects[i];
+    const newObject = newObjects[i];
+    if (!newObject) {
+      continue;
+    }
+    const targetObject = {};
+    if (oldObject?.id) targetObject.id = oldObject.id;
+    if (oldObject?.name) targetObject.name = oldObject.name;
+    if (Object.keys(targetObject).length === 0) {
+      continue;
+    }
+    const updatedObject = {};
+    Object.keys(newObject).forEach(key => {
+      if (key === 'id') return;
+      updatedObject[key] = newObject[key];
+    });
+    operations.push({
+      updateOne: {
+        filter: targetObject,
+        update: { $set: updatedObject },
+        upsert: false,
+      }
+    });
+    opToSourceIndex.push(i);
+  }
+
+  if (operations.length === 0) {
+    return results;
+  }
+
+  try {
+    await targetCollection.bulkWrite(operations, { ordered: false });
+    opToSourceIndex.forEach(index => {
+      results[index] = true;
+    });
+    return results;
+  } catch (err) {
+    const failedWriteIndexes = new Set(
+      (err?.writeErrors || []).map(writeError => writeError.index)
+    );
+    for (let i = 0; i < opToSourceIndex.length; i++) {
+      if (!failedWriteIndexes.has(i)) {
+        results[opToSourceIndex[i]] = true;
+      }
+    }
+    if (!err?.writeErrors) {
+      logError(err);
+    }
+    return results;
+  }
+}
+
 async function removeData(type, object) {
   let targetCollection;
   logEvent(LogLevel.INFO, 'Attempting to remove data to the MongoDB database.');
@@ -225,6 +393,61 @@ async function removeData(type, object) {
   return false;
 }
 
+async function removeManyData(type, objects) {
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return [];
+  }
+
+  const targetCollection = await getCollection(type);
+  if (!targetCollection) {
+    return objects.map(() => false);
+  }
+
+  const existing = await readManyData(type, objects);
+  const filters = [];
+  existing.forEach(foundObject => {
+    if (!foundObject) return;
+    if (foundObject.id !== undefined) {
+      filters.push({ id: foundObject.id });
+    } else if (foundObject.name !== undefined) {
+      filters.push({ name: foundObject.name });
+    }
+  });
+
+  if (filters.length === 0) {
+    return existing.map(() => false);
+  }
+
+  try {
+    await targetCollection.deleteMany({ $or: filters });
+    return existing.map(foundObject => !!foundObject);
+  } catch (err) {
+    logError(err);
+    return existing.map(() => false);
+  }
+}
+
+async function pullFromArray(type, arrayField, value) {
+  const targetCollection = await getCollection(type);
+  if (!targetCollection) {
+    return 0;
+  }
+  if (!arrayField || value === undefined) {
+    return 0;
+  }
+
+  try {
+    const result = await targetCollection.updateMany(
+      { [arrayField]: value },
+      { $pull: { [arrayField]: value } }
+    );
+    return result.modifiedCount || 0;
+  } catch (err) {
+    logError(err);
+    return 0;
+  }
+}
+
 async function initDatabase() {
 
   await checkConnection();
@@ -236,6 +459,7 @@ async function initDatabase() {
     } catch (err) {
       logError('Failed to connect to the database server! Check the connection is running and the address and port are correct!');
       logError(`${err}`);
+      console.log(err);
       logError('Exiting...');
       process.exit(1);
     }
@@ -269,23 +493,28 @@ async function getCollection(type) {
     return undefined;
   }
   switch (type.toUpperCase()) {
-    case ('ROLE' || 'ROLES'): {
+    case 'ROLE':
+    case 'ROLES': {
       targetCollection = await client.db().collection("roles");
       return targetCollection;
     }
-    case ('GROUP' || 'GROUPS'): {
+    case 'GROUP':
+    case 'GROUPS': {
       targetCollection = await client.db().collection("groups");
       return targetCollection;
     }
-    case ('USER' || 'USERS'): {
+    case 'USER':
+    case 'USERS': {
       targetCollection = await client.db().collection("users");
       return targetCollection;
     }
-    case ('COMMAND' || 'COMMANDS'): {
+    case 'COMMAND':
+    case 'COMMANDS': {
       targetCollection = await client.db().collection("commands");
       return targetCollection;
     }
-    case ('CONSOLECOMMAND' || 'CONSOLECOMMANDS'): {
+    case 'CONSOLECOMMAND':
+    case 'CONSOLECOMMANDS': {
       targetCollection = await client.db().collection("console_commands");
       return targetCollection;
     }
@@ -296,4 +525,16 @@ async function getCollection(type) {
   }
 }
 
-module.exports = { writeData, readData, removeData, updateData, initDatabase, closeConnection }
+module.exports = {
+  writeData,
+  writeManyData,
+  readData,
+  readManyData,
+  removeData,
+  removeManyData,
+  updateData,
+  updateManyData,
+  pullFromArray,
+  initDatabase,
+  closeConnection,
+}

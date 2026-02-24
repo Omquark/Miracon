@@ -18,13 +18,15 @@ async function addUsers(user) {
     let roleCheck = await validateRoles(user);
     let groupCheck = await validateGroups(user);
 
-    if(!roleCheck){
+    if (!roleCheck) {
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while adding a User. You must add the role first, or remove it from the User.');
         logEvent(LogLevel.INFO, 'No Users have been added.');
+        return [];
     }
-    if(!groupCheck){
+    if (!groupCheck) {
         logEvent(LogLevel.WARN, 'There was a group that could not be validated while adding a User. You must add the group first, or remove it from the User.');
         logEvent(LogLevel.INFO, 'No Users have been added.');
+        return [];
     }
 
     return addObjects('user', strictProperties(user, User));
@@ -37,8 +39,8 @@ async function getUsers(user){
 
 async function updateUsers(oldUser, newUser){
     logEvent(LogLevel.INFO, 'Attempting to add users.');
-    let roleCheck = validateRoles(newUser);
-    let groupCheck = validateGroups(newUser);
+    let roleCheck = await validateRoles(newUser);
+    let groupCheck = await validateGroups(newUser);
 
     if(!roleCheck){
         logEvent(LogLevel.WARN, 'There was a role that could not be validated while adding a User. You must add the role first, or remove it from the User.');

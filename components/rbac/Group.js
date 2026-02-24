@@ -40,7 +40,12 @@ async function updateGroups(oldGroup, newGroup) {
 
 async function removeGroups(group) {
     logEvent(LogLevel.INFO, 'Attempting to remove groups.')
-    await cascadeRemove(group.id, 'group', 'user');
+    const gs = Array.isArray(group) ? [...group] : [group];
+    for (const g of gs) {
+        if (g?.id) {
+            await cascadeRemove(g.id, 'group', 'user');
+        }
+    }
     return removeObjects('group', strictProperties(group, Group));
 }
 
@@ -53,17 +58,35 @@ async function resolveRoles(target) {
     const pulledRoles = [];
 
     const toResolve = Array.isArray(target) ? [...target] : [target]
+    const groupIds = new Set();
+    toResolve.forEach(ob => {
+        if (!ob || !Array.isArray(ob.groups)) return;
+        ob.groups.forEach(groupId => {
+            if (groupId !== undefined && groupId !== null) {
+                groupIds.add(groupId);
+            }
+        });
+    });
 
-    for (ob of toResolve) {
+    const groupRoleMap = new Map();
+    if (groupIds.size > 0) {
+        const pulledGroups = await getGroups([...groupIds].map(id => ({ id })));
+        pulledGroups.forEach(group => {
+            if (!group || group.id === undefined || !Array.isArray(group.roles)) return;
+            groupRoleMap.set(group.id, group.roles);
+        });
+    }
+
+    for (const ob of toResolve) {
         if (ob.roles && Array.isArray(ob.roles) && ob.roles.length > 0) {
             ob.roles.forEach(role => pulledRoles.push(role));
         }
         if (ob.groups && Array.isArray(ob.groups) && ob.groups.length > 0) {
-            for (group of ob.groups) {
-                const pulledGroup = await getGroups({ id: group });
-                pulledGroup[0]?.roles?.forEach(role => {
+            for (const groupId of ob.groups) {
+                const groupRoles = groupRoleMap.get(groupId);
+                groupRoles?.forEach(role => {
                     pulledRoles.push(role);
-                })
+                });
             }
         }
     }

@@ -1,7 +1,17 @@
 const { logEvent, LogLevel } = require("../Log");
 const { Role, Group, User, Roles, Groups, Users } = require("./RoleDefs");
 const { v4: uuidv4 } = require("uuid");
-const { writeData, readData, removeData, updateData } = require("./db");
+const {
+    writeData,
+    writeManyData,
+    readData,
+    readManyData,
+    removeData,
+    removeManyData,
+    updateData,
+    updateManyData,
+    pullFromArray,
+} = require("./db");
 
 /**
  * This file is used to access the Role database.
@@ -30,19 +40,23 @@ async function addObjects(type, object) {
     }
     const os = Array.isArray(object) ? [...object] : [object];
 
-    const addedObjects = os.map(async o => {
+    os.forEach(o => {
         if (!o || (!o.name && !o.id)) {
             logEvent(LogLevel.WARN, 'An object was attempted to add without a name OR id. One of these must be provided to insert the record.')
-            return undefined;
+            return;
         }
         if (!o.id) o.id = uuidv4();
-        if (await writeData(type, o)) {
-            return o;
-        }
-        return undefined;
     });
 
-    return await Promise.all(addedObjects);
+    if (os.length === 1) {
+        if (await writeData(type, os[0])) {
+            return [os[0]];
+        }
+        return [undefined];
+    }
+
+    const insertResults = await writeManyData(type, os);
+    return os.map((o, index) => (insertResults[index] ? o : undefined));
 }
 
 /**
@@ -59,11 +73,10 @@ async function getObjects(type, object = undefined) {
         return await readData(type);
     }
     const os = Array.isArray(object) ? [...object] : [object];
-    const pulledObjects = os.map(async o => {
-        return await readData(type, o);
-    });
-
-    return await Promise.all(pulledObjects);
+    if (os.length === 1) {
+        return [await readData(type, os[0])];
+    }
+    return await readManyData(type, os);
 }
 
 /**
@@ -94,9 +107,15 @@ async function updateObjects(type, oldObjects, newObjects) {
     }
 
     const updatedObjects = [];
-    for (i = 0; i < os.length; i++) {
-        let result = await updateData(type, os[i], ns[i]);
-        if (result) updatedObjects.push(ns[i]);
+    if (os.length === 1) {
+        const result = await updateData(type, os[0], ns[0]);
+        if (result) updatedObjects.push(ns[0]);
+        return updatedObjects;
+    }
+
+    const updateResults = await updateManyData(type, os, ns);
+    for (let i = 0; i < updateResults.length; i++) {
+        if (updateResults[i]) updatedObjects.push(ns[i]);
     }
     return updatedObjects;
 }
@@ -117,40 +136,31 @@ async function removeObjects(type, objects) {
 
     let os = Array.isArray(objects) ? [...objects] : [objects];
 
-    for (o of os) {
-        if (await removeData(type, o)) {
-            removedObjects.push(o);
+    if (os.length === 1) {
+        if (await removeData(type, os[0])) {
+            removedObjects.push(os[0]);
         }
+        return removedObjects;
     }
 
+    const removeResults = await removeManyData(type, os);
+    for (let i = 0; i < removeResults.length; i++) {
+        if (removeResults[i]) {
+            removedObjects.push(os[i]);
+        }
+    }
     return removedObjects;
 
 }
 
 async function cascadeRemove(member, memberType, containerType) {
     logEvent(LogLevel.DEBUG, 'Calling cascade removal');
-
-    const memberList = await Promise.resolve(getObjects(memberType, member));
-    const containerList = await Promise.resolve(getObjects(containerType));
-
-    const changedOther = [];
-
-
-    if (!Array.isArray(memberList) || memberList.length === 0 || //Object.keys(main[0]).length === 0 || 
-        !Array.isArray(containerList) || containerList.length === 0 /*|| Object.keys(other[0].length === 0)*/) {
-        logEvent(LogLevel.WARN, 'Database did not return any results to cascade remove.');
+    if (!member) {
+        logEvent(LogLevel.WARN, 'A member id must be passed to cascadeRemove.');
         return;
     }
-
     logEvent(LogLevel.INFO, `Cascade removing ${memberType} from ${containerType}s`);
-    for (container of containerList) {
-        let foundIndex = container[`${memberType}s`].findIndex((val) => val === member);
-        if (foundIndex !== -1) {
-            logEvent(LogLevel.INFO, `Found a ${containerType} which contains the ${memberType} id of ${member}`);
-            container[`${memberType}s`].splice(foundIndex, 1);
-            await updateObjects(containerType, container, container)
-        }
-    }
+    await pullFromArray(containerType, `${memberType}s`, member);
 };
 
 /**
@@ -162,38 +172,39 @@ async function cascadeRemove(member, memberType, containerType) {
 async function validateRoles(check) {
     logEvent(LogLevel.INFO, 'Checking Roles.')
     logEvent(LogLevel.DEBUG, `check from validateRoles: ${JSON.stringify(check)}`);
-    const rs = await getObjects('role');
-    const cs = Array.isArray(check) ? [...check] : [check]
+    const cs = Array.isArray(check) ? [...check] : [check];
     if (cs.length === 0) {
         logEvent(LogLevel.INFO, 'No roles passed, updating object to have no roles');
         return true;
     }
-    let roleCheck = false;
 
-    rs.forEach(r => {
-        if (!r || !r.id) return;
-        logEvent(LogLevel.DEBUG, `cs from check, validateRoles: ${JSON.stringify(cs)}`);
-        cs.forEach(c => {
-            if (!c) return;
-            if (!c.roles || c.roles.length === 0) {
-                roleCheck = true;
-                return;
-            }
-            const foundRole = c.roles.find(gr => {
-                return gr === r.id;
-            });
-            if (foundRole) {
-                logEvent(LogLevel.DEBUG, `A role was found for the object: ${JSON.stringify(c)}`);
-                roleCheck = true;
+    const roleIds = new Set();
+    cs.forEach(c => {
+        if (!c || !Array.isArray(c.roles)) return;
+        c.roles.forEach(roleId => {
+            if (roleId !== undefined && roleId !== null) {
+                roleIds.add(roleId);
             }
         });
     });
 
-    if (!roleCheck) {
-        logEvent(LogLevel.WARN, `A role cannot be found for the object: ${JSON.stringify(check)}`);
+    if (roleIds.size === 0) {
+        return true;
     }
 
-    return roleCheck;
+    const pulledRoles = await getObjects('role', [...roleIds].map(id => ({ id })));
+    const validRoleIds = new Set(
+        pulledRoles
+            .filter(role => role && role.id !== undefined)
+            .map(role => role.id)
+    );
+    const invalidRole = [...roleIds].find(roleId => !validRoleIds.has(roleId));
+    if (invalidRole !== undefined) {
+        logEvent(LogLevel.WARN, `A role cannot be found for the object: ${JSON.stringify(check)}`);
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -205,30 +216,34 @@ async function validateRoles(check) {
 async function validateGroups(check) {
     logEvent(LogLevel.INFO, 'Checking Groups.')
     logEvent(LogLevel.DEBUG, `check from validateGroups: ${JSON.stringify(check)}`);
-    const rs = await getObjects('group');
-    logEvent(LogLevel.DEBUG, `rs from validate groups: ${JSON.stringify(rs)}`);
-    if (!rs || (rs.length === 1 && Object.keys(rs[0]).length)) {
-        logEvent(LogLevel.INFO, `Received an empty array from getGroups for validating groups`);
-        return;
-    }
-    const cs = Array.isArray(check) ? [...check] : [check]
-    let roleCheck = true;
-
-    rs.forEach(r => {
-        logEvent(LogLevel.DEBUG, `cs from check, validateGroups: ${JSON.stringify(cs)}`);
-        cs.forEach(c => {
-            if (!c || !c.roles || c.roles.length === 0) {
-                return;
-            }
-            const foundRole = c.roles.find(gr => gr === r.name);
-            if (!foundRole) {
-                logEvent(LogLevel.WARN, `A group cannot be found for the user: ${JSON.stringify(c)}`);
-                roleCheck = false;
+    const cs = Array.isArray(check) ? [...check] : [check];
+    const groupIds = new Set();
+    cs.forEach(c => {
+        if (!c || !Array.isArray(c.groups)) return;
+        c.groups.forEach(groupId => {
+            if (groupId !== undefined && groupId !== null) {
+                groupIds.add(groupId);
             }
         });
     });
 
-    return roleCheck;
+    if (groupIds.size === 0) {
+        return true;
+    }
+
+    const pulledGroups = await getObjects('group', [...groupIds].map(id => ({ id })));
+    const validGroupIds = new Set(
+        pulledGroups
+            .filter(group => group && group.id !== undefined)
+            .map(group => group.id)
+    );
+    const invalidGroup = [...groupIds].find(groupId => !validGroupIds.has(groupId));
+    if (invalidGroup !== undefined) {
+        logEvent(LogLevel.WARN, `A group cannot be found for the user: ${JSON.stringify(check)}`);
+        return false;
+    }
+
+    return true;
 }
 
 
