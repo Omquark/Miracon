@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # PRODUCT_NAME="miracon"
 # TEMP_PATH=/var/tmp/$PRODUCT_NAME
 EDITOR_PASSWORD=$PRODUCT_NAME
@@ -100,6 +100,8 @@ chmod -R 755 $LOG_PATH
 chown -R ${CREATED_USER}:${CREATED_USER}g $LOG_PATH
 chmod -R 755 /data
 chown -R ${CREATED_USER}:${CREATED_USER}g /data
+chmod -R 755 /home/miracon
+chown -R ${CREATED_USER}:${CREATED_USER}g /home/miracon
 
 echo "Cleaning up temp files"
 rm $TEMP_PATH -rf
