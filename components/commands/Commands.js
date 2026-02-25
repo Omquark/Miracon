@@ -119,14 +119,17 @@ async function getCommand(name, user,) {
     return { error: `Command ${name.toUpperCase()} could not be found` };
   }
 
-  const pulledUser = await getUsers({ name: user.name, id: user.id });
-  if (!pulledUser[0]) {
-    // if (pulledUser.length === 0) {
-    logEvent(LogLevel.AUDIT, `Attempted to execute command ${foundCommand.name.toUpperCase()}, but the user ${user.name} could not be found`)
-    return { error: `The user ${user.name} could not be found`, invalidate: true }
+  let userRoles;
+  if (Array.isArray(user.roleIds)) {
+    userRoles = [...user.roleIds];
+  } else {
+    const pulledUser = await getUsers({ name: user.name, id: user.id });
+    if (!pulledUser[0]) {
+      logEvent(LogLevel.AUDIT, `Attempted to execute command ${foundCommand.name.toUpperCase()}, but the user ${user.name} could not be found`)
+      return { error: `The user ${user.name} could not be found`, invalidate: true }
+    }
+    userRoles = await resolveRoles(pulledUser);
   }
-
-  const userRoles = await resolveRoles(pulledUser);
   logEvent(LogLevel.DEBUG, `Pulled user's resolved roles: ${JSON.stringify(userRoles)}`);
 
   if (!Array.isArray(userRoles) || userRoles.length === 0) {

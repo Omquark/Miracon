@@ -236,6 +236,12 @@ app.all(/^(?!\/$|\/_next|\/favicon\.ico$).*$/, async (req, res, next) => {
         sendError(res, 403, 'No roles could be found for user');
         return;
     }
+
+    req.session.userInfo = {
+        ...req.session.userInfo,
+        id: currentUser.id,
+        roleIds: testRoles,
+    };
     next();
 });
 
