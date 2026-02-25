@@ -90,7 +90,7 @@ async function InitUsers() {
       email: `${op.name}@miracon.com`,
       preferences: {},
       roles: [],
-      groups: [addedGroups.find(group => group.name.includes(op.level)).id],
+      groups: [addedGroups.find(group => group.name === `Level ${op.level}`)?.id],
       id: op.uuid,
       active: false,
       changePassword: true,
@@ -117,7 +117,7 @@ async function InitUsers() {
   logEvent(LogLevel.INFO, 'Hashing passwords');
 
 
-  for (user of createdUsers) {
+  for (const user of createdUsers) {
     try {
       logEvent(LogLevel.DEBUG, `Hashing password for ${user.name}`);
       user.password = await bcrypt.hash(user.password, 14);

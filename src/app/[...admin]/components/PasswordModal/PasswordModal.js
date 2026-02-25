@@ -17,9 +17,14 @@ export default function PasswordModal() {
 
   const { userInfo, setUserInfo } = useContext(UserInfoContext);
 
+  // useEffect(() => {
+  //   setModalShown(Boolean(userInfo?.changePassword));
+  // }, [userInfo?.changePassword]);
+
   useEffect(() => {
     showPasswordModal();
   }, []);
+
 
   const newChange = () => {
     showPasswordModal();
@@ -63,7 +68,7 @@ export default function PasswordModal() {
     )
 
     setModalMessage(message);
-    setModalShown(userInfo.changePassword);
+    setModalShown(Boolean(userInfo?.changePassword));
   }
 
   const savePassword = async () => {
@@ -91,11 +96,11 @@ export default function PasswordModal() {
     if (!passwordResult.error) {
       const newInfo = { ...userInfo, changePassword: false };
       setUserInfo(newInfo);
-      // toast('Password updated!', { onClose: () => setModalShown(false) });
-      // setModalShown(false);
+      setResponseText('');
+      setModalShown(false);
     } else {
       toast(passwordResult.error);
-      // setResponseText(passwordResult.error)
+      setResponseText(passwordResult.error);
     }
     setWaiting(false);
     saveButton.disabled = false;

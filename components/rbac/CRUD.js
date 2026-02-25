@@ -99,7 +99,6 @@ async function updateObjects(type, oldObjects, newObjects) {
     const os = Array.isArray(oldObjects) ? [...oldObjects] : [oldObjects];
     const ns = Array.isArray(newObjects) ? [...newObjects] : [newObjects];
 
-    console.log('newObjects', newObjects);
     if (os.length !== ns.length) {
         logEvent(LogLevel.WARN, 'The old objects and new objects must have an equal number passed.');
         logEvent(LogLevel.WARN, 'The old objects will be updated to the new objects in the same order corresponding to the element in the array.');

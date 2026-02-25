@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
@@ -8,27 +8,21 @@ import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 import { IoMdArrowDropdown } from 'react-icons/io';
 
 export default function Role() {
-
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
-    const [sorted, setSorted] = useState({ column: 'name', ascending: true })
+    const [sorted, setSorted] = useState({ column: 'name', ascending: true });
 
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
-    const isInitialMount = useRef(true);
-
     useEffect(() => {
-        if (isInitialMount.current) {
-            dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles })
-            isInitialMount.current = false;
-        }
+        dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
     }, [dispatchAdminRoles]);
 
     const showCreateRoleModal = () => {
         const role = { name: '', id: '' };
         showRoleModal(role);
-        setModalHeader(`Create new Role`);
+        setModalHeader('Create new Role');
         const saveButton = document.getElementById('save-role');
         const createButton = document.getElementById('create-role');
         const removeButton = document.getElementById('remove-role');
@@ -36,7 +30,7 @@ export default function Role() {
         saveButton.hidden = true;
         createButton.hidden = undefined;
         removeButton.hidden = true;
-    }
+    };
 
     const showRoleModal = (role) => {
         const message = (
@@ -57,7 +51,7 @@ export default function Role() {
                     value={role.name}
                 />
             </>
-        )
+        );
 
         setModalMessage(message);
         setModalShown(true);
@@ -70,9 +64,9 @@ export default function Role() {
         createButton.hidden = true;
         removeButton.hidden = undefined;
         removeButton.disabled = role.critical;
-    }
+    };
 
-    const SaveRole = async (update = true) => {
+    const saveRole = async (update = true) => {
         let savingRoleID;
         try {
             savingRoleID = document.getElementById('RoleID').value;
@@ -81,28 +75,29 @@ export default function Role() {
             return;
         }
 
-        const changingRole = update ?
-            adminRoles.find(role => {
-                return role.id === savingRoleID;
-            }) :
-            { name: '', id: '' }
+        const existingRole = update ? adminRoles.find(role => role.id === savingRoleID) : undefined;
+        const changingRole = existingRole ? { ...existingRole } : { name: '', id: '' };
 
         const saveButton = document.getElementById('save-role');
-        saveButton.innerHTML = 'Loading'
+        saveButton.innerHTML = 'Loading';
         saveButton.disabled = true;
 
         changingRole.name = document.getElementById('RoleName').value;
 
-        dispatchAdminRoles({ type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.CREATE_ROLE, payload: changingRole, context: dispatchAdminRoles });
+        dispatchAdminRoles({
+            type: update ? rolesActionTypes.UPDATE_ROLE : rolesActionTypes.CREATE_ROLE,
+            payload: changingRole,
+            context: dispatchAdminRoles
+        });
 
         saveButton.innerHTML = 'Save';
         saveButton.disabled = false;
 
         setModalShown(false);
-    }
+    };
 
-    const RemoveRole = () => {
-        let roleID = document.getElementById('RoleID')?.value;
+    const removeRole = () => {
+        const roleID = document.getElementById('RoleID')?.value;
         if (!roleID) {
             console.log('The Role ID is not defined');
             return;
@@ -110,19 +105,19 @@ export default function Role() {
 
         dispatchAdminRoles({ type: rolesActionTypes.REMOVE_ROLE, payload: { id: roleID }, context: dispatchAdminRoles });
         setModalShown(false);
-    }
+    };
 
     const footerButtons = (
         <>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => SaveRole(true)}
+                onClick={() => saveRole(true)}
                 id='save-role'
                 type='submit'
                 enabled={true} >Save</Button>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => SaveRole(false)}
+                onClick={() => saveRole(false)}
                 id='create-role'
                 type='submit'
                 enabled={true}
@@ -135,23 +130,31 @@ export default function Role() {
                 enabled={true} >Cancel</Button>
             <Button
                 className='mx-2 my-2'
-                onClick={() => RemoveRole()}
+                onClick={() => removeRole()}
                 id='remove-role'
                 type='submit'
                 enabled={true} >Delete</Button>
         </>
-    )
+    );
 
     const sortBy = (column) => {
         const newSorted = { ...sorted };
         if (newSorted.column === column) {
-            newSorted.ascending = !sorted.ascending;
+            newSorted.ascending = !newSorted.ascending;
         } else {
             newSorted.column = column;
             newSorted.ascending = true;
         }
         setSorted(newSorted);
-    }
+    };
+
+    const sortedRoles = Array.isArray(adminRoles)
+        ? [...adminRoles].sort((a, b) => {
+            const lhs = String(a?.[sorted.column] ?? '');
+            const rhs = String(b?.[sorted.column] ?? '');
+            return sorted.ascending ? lhs.localeCompare(rhs) : rhs.localeCompare(lhs);
+        })
+        : [];
 
     return (
         <div className='text-center'>
@@ -199,24 +202,20 @@ export default function Role() {
                 </thead>
                 <tbody>
                     {
-                        adminRoles && Array.isArray(adminRoles) ?
-                            adminRoles
-                                .sort((a, b) => {
-                                    return sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column];
-                                })
-                                .map(role => {
-                                    if (!role) return <></>
-                                    return (
-                                        <tr
-                                            className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
-                                            onClick={() => showRoleModal(role)}
-                                            key={role.id}>
-                                            <td>{role.id}</td>
-                                            <td>{role.name}</td>
-                                        </tr>
-                                    )
-                                })
-                            : <></>//adminRoles && Array.isArray(Roles) ? 
+                        sortedRoles.length > 0 ?
+                            sortedRoles.map(role => {
+                                if (!role) return null;
+                                return (
+                                    <tr
+                                        className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
+                                        onClick={() => showRoleModal(role)}
+                                        key={role.id}>
+                                        <td>{role.id}</td>
+                                        <td>{role.name}</td>
+                                    </tr>
+                                );
+                            })
+                            : null
                     }
                 </tbody>
             </table>
@@ -224,5 +223,5 @@ export default function Role() {
                 Create Role
             </Button>
         </div>
-    )
+    );
 }

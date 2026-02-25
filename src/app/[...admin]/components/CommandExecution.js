@@ -1,3 +1,5 @@
+'use client'
+
 import { useContext, useEffect, useState } from "react";
 import { effectCommand, pullConsoleCommands } from "./api/consoleCommands";
 import Button from "@/app/components/Button/Button";
@@ -9,7 +11,6 @@ import CheckBox from "@/app/components/CheckBox/CheckBox";
 import { UserInfoContext } from "@/app/layout";
 
 export default function CommandExecution() {
-
   const { userInfo } = useContext(UserInfoContext);
 
   const [consoleCommands, setConsoleCommands] = useState();
@@ -20,38 +21,26 @@ export default function CommandExecution() {
 
   useEffect(() => {
     const setConsoleCommandsState = async () => {
-      const roles = userInfo.roleIds;
-      const tempCommands = (await pullConsoleCommands()).filter(command => {
-        for (const role of roles) {
-          if (command.roles.find(commandRole => {
-            return commandRole === role;
-          })) {
-            return true;
-          }
-        }
-        return false;
+      const roles = Array.isArray(userInfo?.roleIds) ? userInfo.roleIds : [];
+      const pulledCommands = await pullConsoleCommands();
+      const commands = Array.isArray(pulledCommands) ? pulledCommands : [];
+      const tempCommands = commands.filter(command => {
+        const commandRoles = Array.isArray(command.roles) ? command.roles : [];
+        return roles.some(role => commandRoles.includes(role));
       });
       setConsoleCommands(tempCommands);
     };
     setConsoleCommandsState();
-  }, []);
+  }, [userInfo]);
 
-  /**
-   * Creates the elements for the form to offer the user required and optional elements
-   * @param {Array} elems An array of parameters for the command
-   * @param {boolean} required If this element is required. Used primarily to set a textbox red when it is required (Not yet working)
-   * @returns The body to be used directly in the modal
-   */
   const createElements = async (elems, required) => {
-    if (elems.length === 0) return undefined;
-    let param;
+    if (!Array.isArray(elems) || elems.length === 0) return undefined;
     const body = [];
-    for (param of elems) {
-      // elems.forEach(async (param) => {
-      if (!param.type) return;
-      let id = `${param.name}`;
+    for (const param of elems) {
+      if (!param?.type) continue;
+      const id = `${param.name}`;
       switch (param.type.toUpperCase()) {
-        case ('STRING'): {
+        case 'STRING': {
           body.push((
             <div className='my-4' key={id}>
               <TextBox
@@ -63,9 +52,8 @@ export default function CommandExecution() {
           ));
           break;
         }
-        //Handles similar, but has a slight difference how the selections are populated
-        case ('PLAYER'):
-        case ('ENUM'):
+        case 'PLAYER':
+        case 'ENUM':
           body.push((
             <div className='my-4' key={id}>
               <Selection
@@ -73,62 +61,62 @@ export default function CommandExecution() {
                 placeholder={param.name}
                 id={id}
                 values={
-                  param.type.toUpperCase() === 'ENUM' ?
-                    param.values :
-                    await listPlayers()
+                  param.type.toUpperCase() === 'ENUM'
+                    ? param.values
+                    : await listPlayers()
                 } />
             </div>
           ));
           break;
-        case ('BOOLEAN'): {
+        case 'BOOLEAN': {
           body.push((
             <div className='my-4' key={id}>
               <CheckBox
                 id={id}
                 placeholder={param.name} />
             </div>
-          ))
+          ));
+          break;
         }
+        default:
+          break;
       }
     }
     return body;
-  }
+  };
 
   const listPlayers = async () => {
     const listResponse = await effectCommand('list');
-    //String looks as There are 1 of max of 20 players online: player1, player2
-    //we can assume player names are alpha-numeric with underscores
-    //Split and use the second of the array, this is the raw player list
-    const rawList = listResponse.message.split(':')[1];
-    //Now split by commas
-    const playerList = rawList.split(',').map(player => player.trim());
-    if (playerList[0] === "") {
-      playerList[0] = "No players found";
-    }
-    return playerList;
-  }
+    const message = String(listResponse?.message || '');
+    const parts = message.split(':');
+    if (parts.length < 2) return ['No players found'];
+    const rawList = parts[1];
+    const playerList = rawList.split(',').map(player => player.trim()).filter(Boolean);
+    return playerList.length > 0 ? playerList : ['No players found'];
+  };
 
   const executeSimpleCommand = (name) => {
     callCommand(name);
-  }
+  };
 
   const executeCommand = (name) => {
     const params = [];
     const form = document.getElementById('command-form');
-    const elements = form?.elements;
-    Array.from(elements).filter(elem => elem.nodeName !== 'BUTTON' && !elem.hidden).forEach(elem => {
-      if (elem.type === 'checkbox') {
-        if (elem.checked)
-          params.push(elem.id);
-      } else {
-        params.push(elem.value);
-      }
-    });
+    const elements = form?.elements ? Array.from(form.elements) : [];
+    elements
+      .filter(elem => elem.nodeName !== 'BUTTON' && !elem.hidden)
+      .forEach(elem => {
+        if (elem.type === 'checkbox') {
+          if (elem.checked) params.push(elem.id);
+        } else {
+          params.push(elem.value);
+        }
+      });
 
     const commandString = name.concat(' ', params.join(' '));
     setModalShown(false);
     callCommand(commandString);
-  }
+  };
 
   const prepareModal = async (command) => {
     setModalHeader(command.name);
@@ -158,7 +146,7 @@ export default function CommandExecution() {
           type='button'
           enabled={true} >Cancel</Button>
       </>
-    )
+    );
 
     setModalMessage((
       <form
@@ -169,13 +157,21 @@ export default function CommandExecution() {
     ));
     setFooterButtons(footer);
     setModalShown(true);
-  }
+  };
 
   const callCommand = async (command) => {
     const message = await effectCommand(command);
     toast(message.message ? message.message : `Error: ${message.error}`);
     setModalShown(false);
-  }
+  };
+
+  const sortedCommands = Array.isArray(consoleCommands)
+    ? [...consoleCommands].sort((lhs, rhs) => {
+      const left = String(lhs?.name || '');
+      const right = String(rhs?.name || '');
+      return left.localeCompare(right);
+    })
+    : [];
 
   return (
     <div className='flex flex-wrap mt-5 '>
@@ -189,24 +185,22 @@ export default function CommandExecution() {
         {modalMessage}
       </Modal>
       {
-        Array.isArray(consoleCommands) ?
-          consoleCommands
-            .sort((lhs, rhs) => lhs.name > rhs.name)
-            .map(command => {
-              return (
-                <div key={command.id}>
-                  <Button
-                    className='ms-4 my-5 '
-                    onClick={() => prepareModal(command)}
-                    id={`effect-${command.name}`}
-                    type='button'
-                    enabled={true} >
-                    {command.name}
-                  </Button>
-                </div>
-              )
-            }
-            ) : <></> //consoleCommands && Array.isArray(consoleCommands)
+        sortedCommands.length > 0 ?
+          sortedCommands.map(command => {
+            return (
+              <div key={command.id}>
+                <Button
+                  className='ms-4 my-5 '
+                  onClick={() => prepareModal(command)}
+                  id={`effect-${command.name}`}
+                  type='button'
+                  enabled={true} >
+                  {command.name}
+                </Button>
+              </div>
+            );
+          })
+          : null
       }
       <ToastContainer
         position="top-right"
@@ -217,5 +211,5 @@ export default function CommandExecution() {
         transition={Flip}
       />
     </div>
-  )
+  );
 }

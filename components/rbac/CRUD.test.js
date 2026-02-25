@@ -1,181 +1,132 @@
-jest.doMock('../Log', () => {
-    return {
-        __esmodule: false,
-        logEvent: (logLevel, message) => {
-            //we don't need the debug messages
-            if (logLevel.level > 0) console.log(`${logLevel.name} ${message}`);
-        },
-        logError: (message) => {
-            console.log(`${message}`);
-        },
-        LogLevel: {
-            ALL: { name: 'ALL', level: -1 },
-            DEBUG: { name: 'DEBUG', level: 0 },
-            INFO: { name: 'INFO', level: 1 },
-            WARN: { name: 'WARN', level: 2 },
-            ERROR: { name: 'ERROR', level: 255 },
-        }
-    }
-});
+jest.mock('../Log', () => ({
+  __esmodule: false,
+  logEvent: jest.fn(),
+  logError: jest.fn(),
+  LogLevel: {
+    ALL: { name: 'ALL', level: -1 },
+    DEBUG: { name: 'DEBUG', level: 0 },
+    INFO: { name: 'INFO', level: 1 },
+    WARN: { name: 'WARN', level: 2 },
+    ERROR: { name: 'ERROR', level: 255 },
+  }
+}));
 
 let mockUUID = 0;
-jest.doMock('uuid', () => {
-    return {
-        __esmodule: false,
-        v4: () => { mockUUID++; return mockUUID; },
-    }
-});
+jest.mock('uuid', () => ({
+  __esmodule: false,
+  v4: () => {
+    mockUUID += 1;
+    return `uuid-${mockUUID}`;
+  },
+}));
 
-jest.doMock('../Config', () => {
-    return {
-        getConfig: () => {
-            return {
-                init: false,
-                minecraftServer: {
-                    path: '/opt/minecraft',
-                    address: 'localhost',
-                    port: '25575',
-                    password: 'cGFzc3dvcmQK' //64-bit encoded
-                },
-                log: {
-                    level: 'ALL',
-                    path: '/var/miracon',
-                    logFolder: 'log',
-                    auditFolder: 'audit',
-                },
-                nodeConfig: {
-                    port: '3010',
-                    installPath: '/opt/miracon',
-                    initUsers: true,
-                },
-                dbConfig: {
-                    dbname: 'miracon-test',
-                    url: 'localhost',
-                    port: 27017,
-                    username: 'miracon',
-                    password: 'miracon'
-                }
-            }
-        },
-        HiddenConfig: {
-            dbConfig: { password: 'miracon' }
-        }
-    }
-});
+jest.mock('./db', () => ({
+  writeData: jest.fn(),
+  writeManyData: jest.fn(),
+  readData: jest.fn(),
+  readManyData: jest.fn(),
+  removeData: jest.fn(),
+  removeManyData: jest.fn(),
+  updateData: jest.fn(),
+  updateManyData: jest.fn(),
+  pullFromArray: jest.fn(),
+}));
 
+describe('CRUD unit tests with mocked db', () => {
+  let db;
+  let crud;
 
-describe('Tests for the crud functions, object ids are created at this layer, and accepts batch writes', () => {
-    beforeEach(async () => {
-        const { initDatabase, closeConnection } = require('./db');
-        jest.resetModules();
-        jest.resetAllMocks();
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockUUID = 0;
+    db = require('./db');
+    crud = require('./CRUD');
+  });
 
-        await initDatabase();
-        await closeConnection();
-    });
+  it('adds single and batch objects with expected db calls', async () => {
+    db.writeData.mockResolvedValue(true);
+    db.writeManyData.mockResolvedValue([true, false, true]);
 
-    afterEach(async () => {
-        const { closeConnection } = require('./db');
+    const single = await crud.addObjects('role', { name: 'role-1' });
+    expect(single).toEqual([{ name: 'role-1', id: 'uuid-1' }]);
+    expect(db.writeData).toHaveBeenCalledWith('role', { name: 'role-1', id: 'uuid-1' });
 
-        await closeConnection();
-    });
+    const batch = await crud.addObjects('role', [{ name: 'role-2' }, { name: 'role-3' }, { name: 'role-4' }]);
+    expect(batch).toEqual([
+      { name: 'role-2', id: 'uuid-2' },
+      undefined,
+      { name: 'role-4', id: 'uuid-4' },
+    ]);
+    expect(db.writeManyData).toHaveBeenCalledTimes(1);
+  });
 
-    it('tests the functions of add and get objects for roles', async () => {
-        const { addObjects, getObjects } = require('./CRUD');
-        //Verify the writes
-        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
-        let testRole = await addObjects('role', testRoles[0]);
-        expect(testRole[0]).toBeDefined();
-        console.log('testRole', testRole);
+  it('gets objects via readData/readManyData based on cardinality', async () => {
+    db.readData.mockResolvedValue({ id: '1', name: 'single' });
+    db.readManyData.mockResolvedValue([{ id: '2', name: 'r2' }, undefined]);
 
-        expect(testRole[0].name).toBe(testRoles[0].name);
-        expect(testRole[0].id).toBe(1);
+    const all = await crud.getObjects('role');
+    expect(db.readData).toHaveBeenCalledWith('role');
+    expect(all).toEqual({ id: '1', name: 'single' });
 
-        testRole = await addObjects('role', [testRoles[1], testRoles[2]]);
-        expect(testRole.length).toBe(2);
-        expect(testRole[0].name).toBe(testRoles[1].name);
-        expect(testRole[0].id).toBe(2);
-        expect(testRole[1].name).toBe(testRoles[2].name);
-        expect(testRole[1].id).toBe(3);
+    const single = await crud.getObjects('role', { id: '1' });
+    expect(single).toEqual([{ id: '1', name: 'single' }]);
 
-        //Now verify with reads, single
-        testRole = await getObjects('role', { name: 'Test Role 1' });
-        expect(Array.isArray(testRole)).toBeTruthy();
-        expect(testRole.length).toBe(1);
-        expect(testRole[0].name).toBe(testRoles[0].name);
-        expect(testRole[0].id).toBe(1);
+    const many = await crud.getObjects('role', [{ id: '2' }, { id: '3' }]);
+    expect(db.readManyData).toHaveBeenCalledWith('role', [{ id: '2' }, { id: '3' }]);
+    expect(many).toEqual([{ id: '2', name: 'r2' }, undefined]);
+  });
 
-        //Multiple reads
-        testRole = await getObjects('role', [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' }]);
-        expect(testRole.length).toBe(3);
-        expect(testRole[0].name).toBe(testRoles[0].name);
-        expect(testRole[0].id).toBe(1);
-        expect(testRole[1].name).toBe(testRoles[1].name);
-        expect(testRole[1].id).toBe(2);
-        expect(testRole[2].name).toBe(testRoles[2].name);
-        expect(testRole[2].id).toBe(3);
+  it('updates objects in batch using updateManyData results', async () => {
+    db.updateManyData.mockResolvedValue([true, false, true]);
 
-        //Get all the roles
-        testRole = await getObjects('role');
-        expect(testRole.length).toBe(3);
-        expect(testRole[0].name).toBe(testRoles[0].name);
-        expect(testRole[0].id).toBe(1);
-        expect(testRole[1].name).toBe(testRoles[1].name);
-        expect(testRole[1].id).toBe(2);
-        expect(testRole[2].name).toBe(testRoles[2].name);
-        expect(testRole[2].id).toBe(3);
+    const updated = await crud.updateObjects(
+      'user',
+      [{ id: '1' }, { id: '2' }, { id: '3' }],
+      [{ name: 'u1' }, { name: 'u2' }, { name: 'u3' }]
+    );
 
-        testRole = await getObjects('role', { name: 'Test Role 4' })
-        expect(testRole.length).toBe(1);
-    });
+    expect(db.updateManyData).toHaveBeenCalledWith(
+      'user',
+      [{ id: '1' }, { id: '2' }, { id: '3' }],
+      [{ name: 'u1' }, { name: 'u2' }, { name: 'u3' }]
+    );
+    expect(updated).toEqual([{ name: 'u1' }, { name: 'u3' }]);
+  });
 
-    if ('tests the function of update object with roles', async () => {
-        const { getObjects, addObjects, updateObjects } = require('./CRUD');
-        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
+  it('removes objects in batch using removeManyData results', async () => {
+    db.removeManyData.mockResolvedValue([false, true, true]);
 
-        await addObjects('role', testRoles);
-        let testRole = await getObjects('role');
+    const removed = await crud.removeObjects('group', [{ id: '1' }, { id: '2' }, { id: '3' }]);
+    expect(db.removeManyData).toHaveBeenCalledWith('group', [{ id: '1' }, { id: '2' }, { id: '3' }]);
+    expect(removed).toEqual([{ id: '2' }, { id: '3' }]);
+  });
 
-        expect(testRole.length).toBe(3);
-        expect(testRole[0]).toBeDefined();
-        expect(testRole[1]).toBeDefined();
-        expect(testRole[2]).toBeDefined();
+  it('cascadeRemove performs a set-based pull', async () => {
+    await crud.cascadeRemove('role-1', 'role', 'group');
+    expect(db.pullFromArray).toHaveBeenCalledWith('group', 'roles', 'role-1');
+  });
 
-        await updateObjects('role', testRoles[0], { name: 'New Role 1' });
-        await updateObjects('role',
-            [{ name: testRoles[1].name }, { name: testRole[2].name }],
-            [{ name: 'New Role 2' }, { name: 'New Role 3' }]
-        );
+  it('validateRoles checks only referenced role ids', async () => {
+    db.readManyData.mockResolvedValue([{ id: 'r1', name: 'role1' }, undefined]);
 
-        testRole = await getObjects('role');
-        expect(testRole.length).toBe(3);
-        expect(testRole[0].name).toBe('New Role 1');
-        expect(testRole[1].name).toBe('New Role 2');
-        expect(testRole[2].name).toBe('New Role 3');
-    });
+    const valid = await crud.validateRoles([{ roles: ['r1', 'r2'] }]);
+    expect(valid).toBe(false);
+    expect(db.readManyData).toHaveBeenCalledWith('role', [{ id: 'r1' }, { id: 'r2' }]);
 
-    it('tests the function of remove objects with roles', async () => {
-        const { getObjects, addObjects, removeObjects } = require('./CRUD');
-        const testRoles = [{ name: 'Test Role 1' }, { name: 'Test Role 2' }, { name: 'Test Role 3' },];
+    db.readManyData.mockResolvedValue([{ id: 'r1', name: 'role1' }]);
+    const validNoRefs = await crud.validateRoles([{ roles: [] }]);
+    expect(validNoRefs).toBe(true);
+  });
 
-        await addObjects('role', testRoles);
-        let testRole = await getObjects('role');
+  it('validateGroups checks only referenced group ids', async () => {
+    db.readManyData.mockResolvedValue([{ id: 'g1', name: 'group1' }, undefined]);
 
-        expect(testRole.length).toBe(3);
-        expect(testRole[0]).toBeDefined();
-        expect(testRole[1]).toBeDefined();
-        expect(testRole[2]).toBeDefined();
+    const valid = await crud.validateGroups([{ groups: ['g1', 'g2'] }]);
+    expect(valid).toBe(false);
+    expect(db.readManyData).toHaveBeenCalledWith('group', [{ id: 'g1' }, { id: 'g2' }]);
 
-        testRole = await removeObjects('role', testRoles[0]);
-        expect(testRole.length).toBe(1);
-        expect(testRole[0].name).toBe('Test Role 1');
-        testRole = await removeObjects('role', [testRoles[1], testRoles[2]]);
-        expect(testRole.length).toBe(2);
-        expect(testRole[0].name).toBe('Test Role 2');
-        expect(testRole[1].name).toBe('Test Role 3');
-
-        testRole = await getObjects('role');
-
-        expect(testRole.length).toBe(0);
-    });
+    const validNoRefs = await crud.validateGroups([{ groups: [] }]);
+    expect(validNoRefs).toBe(true);
+  });
 });

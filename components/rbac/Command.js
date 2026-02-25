@@ -3,6 +3,11 @@ const { Command } = require("../commands/CmdDef");
 const { validateRoles, addObjects, getObjects, updateObjects, removeObjects } = require("./CRUD");
 const { strictProperties } = require("./Utility");
 
+function toBlacklistValidationPayload(command) {
+  const commands = Array.isArray(command) ? command : [command];
+  return commands.map(cmd => ({ roles: cmd?.blacklistRoles || [] }));
+}
+
 /**
  * 
  * @param {Command | Array<Command> } command The command to add, should have a structure as from @components/commands/CmdDef.js
@@ -11,18 +16,18 @@ const { strictProperties } = require("./Utility");
 async function addCommands(command) {
   logEvent(LogLevel.INFO, 'Attempting to add commands.');
   let roleCheck = await validateRoles(command);
-  let blacklistedRoles = { roles: command.roles };
-  let blacklistCheck = await validateRoles(blacklistedRoles);
+  let blacklistCheck = await validateRoles(toBlacklistValidationPayload(command));
 
   if (roleCheck && blacklistCheck) {
-    logEvent(LogLevel.INFO, `Roles validated for the command command.name`);
+    logEvent(LogLevel.INFO, 'Roles validated for command insert');
     return addObjects('command', strictProperties(command, Command));
   } else {
+    const commandName = Array.isArray(command) ? '[batch]' : command?.name;
     if (!roleCheck) {
-      logEvent(LogLevel.INFO, `There was a role that could not be validated for the command ${command.name}`);
+      logEvent(LogLevel.INFO, `There was a role that could not be validated for the command ${commandName}`);
     }
     if (!blacklistCheck) {
-      logEvent(LogLevel.INFO, `There was a role that could not be validated to be blacklisted for the command ${command.name}`);
+      logEvent(LogLevel.INFO, `There was a role that could not be validated to be blacklisted for the command ${commandName}`);
     }
     logEvent(LogLevel.INFO, 'The command has not been added');
   }
@@ -51,18 +56,18 @@ async function getCommands(command) {
 async function updateCommands(oldCmd, newCmd) {
   logEvent(LogLevel.INFO, 'Attempting to update comamnds.');
   let roleCheck = await validateRoles(newCmd);
-  let blacklistedRoles = { roles: newCmd.roles };
-  let blacklistCheck = await validateRoles(blacklistedRoles);
+  let blacklistCheck = await validateRoles(toBlacklistValidationPayload(newCmd));
 
   if (roleCheck && blacklistCheck) {
-    logEvent(LogLevel.INFO, `Roles validated for the command ${newCmd.name}`);
+    logEvent(LogLevel.INFO, 'Roles validated for command update');
     return updateObjects('command', strictProperties(oldCmd, Command), strictProperties(newCmd, Command));
   } else {
+    const commandName = Array.isArray(newCmd) ? '[batch]' : newCmd?.name;
     if (!roleCheck) {
-      logEvent(LogLevel.INFO, `There was a role that could not be validated for the command ${newCmd.name}`);
+      logEvent(LogLevel.INFO, `There was a role that could not be validated for the command ${commandName}`);
     }
     if (!blacklistCheck) {
-      logEvent(LogLevel.INFO, `There was a role that could not be validated to be blacklisted for the command ${newCmd.name}`);
+      logEvent(LogLevel.INFO, `There was a role that could not be validated to be blacklisted for the command ${commandName}`);
     }
     logEvent(LogLevel.INFO, 'The command has not been updated');
   }

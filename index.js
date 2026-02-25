@@ -33,15 +33,23 @@ const { InitCommands, getCommand } = require('./components/commands/Commands');
 const path = require('path');
 const { access, constants, writeFile } = require('fs');
 const { getCommands } = require('./components/rbac/Command');
-const { validateAndSanitizeUser, validateNameId, isValidPassword, isValidUsername, isValidEmail } = require('./components/utility/Validators');
+const { validateAndSanitizeUser, isValidPassword, isValidUsername, isValidEmail } = require('./components/utility/Validators');
 const { InitConsoleCommands } = require('./components/commands/ConsoleCommands');
 const { getConsoleCommands } = require('./components/rbac/ConsoleCommand');
 const { RConnection } = require('./components/RConnnection');
 const { bytesFromBase64 } = require('./components/utility/Utility');
 const { CreateRole, ReadRole, UpdateRole, DeleteRole } = require('./components/endpoint/roles');
 const { CreateGroup, ReadGroup, UpdateGroup, DeleteGroup } = require('./components/endpoint/groups');
-const { ReadUser, UpdateUser, CreateUser } = require('./components/endpoint/users');
+const { ReadUser, UpdateUser, CreateUser, DeleteUser } = require('./components/endpoint/users');
 const { ReadWhitelist, UpdateWhitelist, CreateWhitelist, DeleteWhitelist } = require('./components/endpoint/whitelist');
+const {
+    validateDataEnvelope,
+    makeDataValidator,
+    validateNameField,
+    validateIdField,
+    validateEmailField,
+    validateArrayOfStrings,
+} = require('./components/endpoint/middleware');
 
 
 //Initialize the config and create the RConnection
@@ -65,6 +73,65 @@ app.use(bodyParser.json(bodyParserJsonOptions));
 app.use(session(LoginSessionOpts));
 app.disable('x-powered-by');
 
+function sendError(res, statusCode, message) {
+    res.status(statusCode).send({ error: message });
+}
+
+const validateRoleCreateBody = makeDataValidator({
+    required: ['name'],
+    validators: { name: validateNameField },
+});
+const validateRoleUpdateBody = makeDataValidator({
+    required: ['id', 'name'],
+    validators: { id: validateIdField, name: validateNameField },
+});
+const validateRoleDeleteBody = makeDataValidator({
+    requireAny: ['id', 'name'],
+    validators: { id: validateIdField, name: validateNameField },
+});
+
+const validateGroupCreateBody = makeDataValidator({
+    required: ['name'],
+    validators: { name: validateNameField, roles: validateArrayOfStrings('roles') },
+});
+const validateGroupUpdateBody = makeDataValidator({
+    requireAny: ['id', 'name'],
+    validators: { id: validateIdField, name: validateNameField, roles: validateArrayOfStrings('roles') },
+});
+const validateGroupDeleteBody = makeDataValidator({
+    requireAny: ['id', 'name'],
+    validators: { id: validateIdField, name: validateNameField },
+});
+
+const validateUserCreateBody = makeDataValidator({
+    required: ['name', 'email', 'password'],
+    validators: {
+        name: validateNameField,
+        email: validateEmailField,
+        roles: validateArrayOfStrings('roles'),
+        groups: validateArrayOfStrings('groups'),
+    },
+});
+const validateUserUpdateBody = makeDataValidator({
+    requireAny: ['id', 'name', 'email'],
+    validators: {
+        id: validateIdField,
+        name: validateNameField,
+        email: validateEmailField,
+        roles: validateArrayOfStrings('roles'),
+        groups: validateArrayOfStrings('groups'),
+    },
+});
+const validateUserDeleteBody = makeDataValidator({
+    requireAny: ['id', 'name', 'email'],
+    validators: { id: validateIdField, name: validateNameField, email: validateEmailField },
+});
+
+const validateWhitelistMutateBody = makeDataValidator({
+    required: ['name'],
+    validators: { name: validateNameField },
+});
+
 //Endpoint to login.
 app.post('/login', validateAndSanitizeUser, async (req, res) => {
 
@@ -82,11 +149,11 @@ app.post('/login', validateAndSanitizeUser, async (req, res) => {
 
     logEvent(LogLevel.DEBUG, `userinfo: ${JSON.stringify(userinfo)}`);
     if (!isValidPassword(userinfo.password)) {
-        res.status(400).send({ error: 'Password must be alphanumeric and can contain any of !@#$%^&*?\\' });
+        sendError(res, 400, 'Password must be alphanumeric and can contain any of !@#$%^&*?\\');
         return;
     }
     if (!userinfo.username || !userinfo.password) {
-        res.status(400).send({ error: 'No username or password provided' });
+        sendError(res, 400, 'No username or password provided');
         return;
     }
     const pulledInfo = await checkAndLoginUser(userinfo);
@@ -114,14 +181,14 @@ app.all('/logout', (req, res) => {
 app.put('/change_password', async (req, res) => {
 
     if (!req.session.userInfo) {
-        res.status(401).send({ error: 'User is not logged in.' });
+        sendError(res, 401, 'User is not logged in.');
         return;
     }
 
     const rawBody = req.body;
 
     if (!rawBody.userinfo || !rawBody.userinfo.oldPassword || !rawBody.userinfo.newPassword) {
-        res.status(400).send({ error: 'One of the old password or new password was not provided. Both must be in order to apply a change.' });
+        sendError(res, 400, 'One of the old password or new password was not provided. Both must be in order to apply a change.');
         return;
     }
 
@@ -132,12 +199,12 @@ app.put('/change_password', async (req, res) => {
     }
 
     if (!isValidPassword(userinfo.oldPassword) || !isValidPassword(userinfo.newPassword)) {
-        res.status(400).send({ error: 'The provided password is not valid! A password must be alphanumeric or have the characters !@#$%^&*?\\' });
+        sendError(res, 400, 'The provided password is not valid! A password must be alphanumeric or have the characters !@#$%^&*?\\');
         return;
     }
 
     if (!isValidUsername(rawBody.userinfo.username)) {
-        res.status(400).send({ error: 'The provided username is not valid! The usernames allowed must be alphanumeric and _' });
+        sendError(res, 400, 'The provided username is not valid! The usernames allowed must be alphanumeric and _');
         return;
     }
 
@@ -153,19 +220,20 @@ app.all(/^(?!\/$|\/_next|\/favicon\.ico$).*$/, async (req, res, next) => {
     logEvent(LogLevel.DEBUG, `userInfo = ${JSON.stringify(userInfo)}`);
 
     if (!userInfo?.name) {
-        res.status(401).send({ error: 'User is not logged in' });
+        sendError(res, 401, 'User is not logged in');
         return;
     }
 
-    const user = await getUsers({ name: req.session.userInfo.name })
-    if (!user[0].name || !user[0].id) {
-        res.status(401).send({ error: 'User could not be found' })
+    const user = await getUsers({ name: req.session.userInfo.name });
+    const currentUser = Array.isArray(user) ? user[0] : undefined;
+    if (!currentUser?.name || !currentUser?.id) {
+        sendError(res, 401, 'User could not be found');
         return;
     }
     const testRoles = await resolveRoles(user);
 
     if (!testRoles || !Array.isArray(testRoles) || testRoles.length === 0) {
-        res.status(403).send({ error: 'No roles could be found for user' });
+        sendError(res, 403, 'No roles could be found for user');
         return;
     }
     next();
@@ -175,12 +243,12 @@ app.all(/^(?!\/$|\/_next|\/favicon\.ico$).*$/, async (req, res, next) => {
 app.get('/commands', async (req, res) => {
     const foundCmd = await getCommand('READ_COMMAND', req.session.userInfo);
 
-    if (foundCmd.error) {
+    if (foundCmd?.error) {
         logEvent(LogLevel.WARN, 'There was an error attempting to read the commands!');
-        res.status(403).send({ error: foundCmd.error });
+        sendError(res, 403, foundCmd.error);
         return;
     }
-    res.status(200).send(JSON.stringify(await getCommands()));
+    res.status(200).send(await getCommands());
 });
 
 //Used to get console commands
@@ -191,19 +259,19 @@ app.get('/console', async (req, res) => {
 
 //Used to execute comands through RCon
 app.post('/console', async (req, res) => {
-    const commandName = req.body?.name?.replace(/^![\w_]+$/, '');
+    const commandName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
     logEvent(LogLevel.INFO, `Attempting to execute command ${commandName}`);
     if (!commandName) {
         logEvent(LogLevel.INFO, `Command ${commandName} is not a valid command.`);
-        res.status(400).send({ error: 'Attempted to execute a blank or invalid command!' });
+        sendError(res, 400, 'Attempted to execute a blank or invalid command!');
         return;
     }
 
-    let firstSpace = commandName.indexOf(' ');
-    command = (await getConsoleCommands({ name: commandName.substring(0, firstSpace === -1 ? commandName.length : firstSpace).trim() }))[0];
+    const firstSpace = commandName.indexOf(' ');
+    const command = (await getConsoleCommands({ name: commandName.substring(0, firstSpace === -1 ? commandName.length : firstSpace).trim() }))[0];
     if (!command) {
         logEvent(LogLevel.INFO, `Command ${commandName} could not be found in the database.`);
-        res.status(404).send({ error: 'Command cannot be found!' });
+        sendError(res, 404, 'Command cannot be found!');
         return;
     }
 
@@ -216,7 +284,7 @@ app.post('/console', async (req, res) => {
     } catch (err) {
         response = err;
         logError(err);
-        res.status(400).send({ error: response });
+        sendError(res, 500, response);
         return;
     }
 
@@ -227,15 +295,15 @@ app.get('/roles', async (req, res) => {
     ReadRole(req, res);
 });
 
-app.put('/roles', validateNameId, async (req, res) => {
+app.put('/roles', validateDataEnvelope, validateRoleUpdateBody, async (req, res) => {
     UpdateRole(req, res);
 });
 
-app.post('/roles', validateNameId, async (req, res) => {
+app.post('/roles', validateDataEnvelope, validateRoleCreateBody, async (req, res) => {
     CreateRole(req, res);
 });
 
-app.delete('/roles', validateNameId, async (req, res) => {
+app.delete('/roles', validateDataEnvelope, validateRoleDeleteBody, async (req, res) => {
     DeleteRole(req, res);
 });
 
@@ -243,47 +311,47 @@ app.get('/groups', async (req, res) => {
     ReadGroup(req, res);
 });
 
-app.put('/groups', validateNameId, async (req, res) => {
+app.put('/groups', validateDataEnvelope, validateGroupUpdateBody, async (req, res) => {
     UpdateGroup(req, res)
 });
 
-app.post('/groups', validateNameId, async (req, res) => {
+app.post('/groups', validateDataEnvelope, validateGroupCreateBody, async (req, res) => {
     CreateGroup(req, res);
 });
 
-app.delete('/groups', validateNameId, async (req, res) => {
+app.delete('/groups', validateDataEnvelope, validateGroupDeleteBody, async (req, res) => {
     DeleteGroup(req, res);
 });
 
-app.get('/users', validateNameId, async (req, res) => {
+app.get('/users', async (req, res) => {
     ReadUser(req, res);
 });
 
-app.put('/users', validateNameId, async (req, res) => {
+app.put('/users', validateDataEnvelope, validateUserUpdateBody, async (req, res) => {
     UpdateUser(req, res);
 });
 
-app.post('/users', validateNameId, async (req, res) => {
+app.post('/users', validateDataEnvelope, validateUserCreateBody, async (req, res) => {
     CreateUser(req, res);
 });
 
-app.delete('/users', validateNameId, async (req, res) => {
+app.delete('/users', validateDataEnvelope, validateUserDeleteBody, async (req, res) => {
     DeleteUser(req, res);
 });
 
-app.get('/whitelist', validateNameId, async (req, res) => {
+app.get('/whitelist', async (req, res) => {
     ReadWhitelist(req, res);
 });
 
-app.put('/whitelist', validateNameId, async (req, res) => {
+app.put('/whitelist', validateDataEnvelope, validateWhitelistMutateBody, async (req, res) => {
     UpdateWhitelist(req, res);
 });
 
-app.post('/whitelist', validateNameId, async (req, res) => {
+app.post('/whitelist', validateDataEnvelope, validateWhitelistMutateBody, async (req, res) => {
     CreateWhitelist(req, res);
 });
 
-app.delete('/whitelist', validateNameId, async (req, res) => {
+app.delete('/whitelist', validateDataEnvelope, validateWhitelistMutateBody, async (req, res) => {
     DeleteWhitelist(req, res);
 });
 
@@ -309,26 +377,13 @@ app.get(/^\/admin/, (req, res) => {
 
 //Used to serve non-admin pages
 app.all('/', (req, res, next) => {
-    if (req.path.includes('admin')) {
-        if (!req.session.userInfo) {
-            logEvent(LogLevel.INFO, `Attempt to access admin page without being logged in! Details: ${JSON.stringify(req.body, undefined, 2)}`)
-            res.status(401).send({ error: 'You must be logged in to access this page' });
-            return;
-        }
-        if (!req.session.userInfo.roles || req.session.userInfo.roles.length === 0) {
-            res.status(401).send({ error: 'You are logged in, but you do not have access granted. Talk to the server owner about your access.' });
-            return;
-        }
-    } else if (req.path !== '/') {
+    if (req.path !== '/' && req.path !== '/favicon.ico') {
         next();
+        return;
     }
     logEvent(LogLevel.DEBUG, 'Handing off to next to handle requst');
     logEvent(LogLevel.DEBUG, `req.path ${req.path}`);
-    if (req.path === '/' || req.path === '/favicon.ico') {
-        handle(req, res);
-        return;
-    }
-    next();
+    handle(req, res);
 });
 
 //If the path could not be found
