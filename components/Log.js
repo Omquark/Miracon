@@ -11,13 +11,17 @@ const LogLevel = {
     WARN: { name: 'WARN', level: 2 },
     AUDIT: { name: 'AUDIT', level: 255 },
     ERROR: { name: 'ERROR', level: 255 },
-}
+};
 
 /**
  * The logging level used to check again when writing logs
  * If not set, prints EVERYTHING!
  */
 let messageLevel = LogLevel.ALL;
+
+function isValidLogLevel(level) {
+    return Boolean(level && level.name && (level.level === 0 || Number.isFinite(level.level)));
+}
 
 /**
  * Sets the minimum level required to print to log. If level is invalid, sets to everything.
@@ -27,12 +31,12 @@ let messageLevel = LogLevel.ALL;
  */
 function setMessageLevel(level) {
     logEvent(LogLevel.INFO, 'Attempting to set a new log level...');
-    if (!level.name || level.name === '' || (!level.level && level === 0) || Number.isNaN(level.level)) {
+    if (!isValidLogLevel(level)) {
         logEvent(LogLevel.WARN, 'Level passed was defaulted! Setting log to default, which will print everything.');
         messageLevel = LogLevel.ALL;
         return LogLevel.ALL;
     }
-    logEvent(LogLevel.INFO, `Setting log level from ${messageLevel.name} to ${level.name}`)
+    logEvent(LogLevel.INFO, `Setting log level from ${messageLevel.name} to ${level.name}`);
     messageLevel = level;
     return level;
 }
@@ -44,8 +48,7 @@ function setMessageLevel(level) {
  */
 function logEvent(logLevel, message) {
     if (logLevel.level < messageLevel.level) return;
-    const logMessage = createMessage(logLevel, message);
-    console.log(logMessage);
+    console.log(createMessage(logLevel, message));
 }
 
 /**
@@ -53,8 +56,7 @@ function logEvent(logLevel, message) {
  * @param {string} message The comment of the message to print to the error log
  */
 function logError(message) {
-    const logMessage = createMessage(LogLevel.ERROR, message);
-    console.error(logMessage);
+    console.error(createMessage(LogLevel.ERROR, message));
 }
 
 /**
@@ -64,14 +66,9 @@ function logError(message) {
  * @returns A crafted message to print to the log
  */
 function createMessage(logLevel, message) {
-    const logTimeStamp = format(new Date(), 'yyyyMMdd\tHH:mm:ss');
+    const timestamp = format(new Date(), 'yyyyMMdd\tHH:mm:ss');
     const logID = uuidv4();
-    const logMessage = ''.concat(logTimeStamp)
-        .concat('\t').concat(logID)
-        .concat('\t').concat(logLevel.name)
-        .concat('\t').concat(message);
-
-    return logMessage;
+    return `${timestamp}\t${logID}\t${logLevel.name}\t${message}`;
 }
 
 module.exports = { LogLevel, setMessageLevel, logEvent, logError };

@@ -92,7 +92,7 @@ jest.mock("../../../../../components/rbac/ConsoleCommand", () => ({
   getConsoleCommands: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock("../../../../../components/RConnnection", () => ({
+jest.mock("../../../../../components/RConnection", () => ({
   RConnection: jest.fn().mockImplementation(() => ({
     login: jest.fn().mockResolvedValue(undefined),
     send: jest.fn().mockResolvedValue("ok"),

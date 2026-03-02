@@ -3,7 +3,7 @@ const PACKET_TYPE = {
     PACKET_COMMAND_RESPONSE: 0,
     PACKET_COMMAND: 2,
     PACKET_AUTH: 3,
-}
+};
 
 /**
  * Packet info used to structure and destructure packets.
@@ -17,8 +17,8 @@ const PACKET_INFO = {
     packetId: 0,
     packetType: 0,
     packetBody: '',
-    PacketValid: true,
-}
+    packetValid: true,
+};
 
 /**
  * Structures a packet to use for RCON. The packet can be written directly to a generic socket.
@@ -28,11 +28,11 @@ const PACKET_INFO = {
 function structPacket(packetInfo) {
     const { packetId, packetType } = packetInfo;
 
-    //If packets fail, check to make sure the body is not being appened with non-whitspace characters!
+    //If packets fail, check to make sure the body is not being appended with non-whitespace characters!
     const packetBody = packetInfo.packetBody ? packetInfo.packetBody.toString().trim() : '';
 
     const payloadLength = packetBody ? Buffer.byteLength(packetBody, 'ascii') : 0;
-    const size = 4 + 4 + 4 + payloadLength + 2; //ID + Type + Payload + 2 null butes
+    const size = 4 + 4 + 4 + payloadLength + 2; //ID + Type + Payload + 2 null bytes
 
     const buffer = Buffer.alloc(size);
 
@@ -59,18 +59,16 @@ function structPacket(packetInfo) {
  */
 function destructPacket(buffer) {
 
-    let id, type, body, valid;
-
     const size = buffer.length - 4;
 
-    valid = size === buffer.readInt32LE();
-    id = buffer.readInt32LE(4);
-    type = buffer.readInt32LE(8);
-    body = buffer.toString('utf-8', 12, buffer.length - 2);
+    let valid = size === buffer.readInt32LE();
+    const id = buffer.readInt32LE(4);
+    const type = buffer.readInt32LE(8);
+    const body = buffer.toString('utf-8', 12, buffer.length - 2);
 
     valid &= buffer.readInt32LE(size - 4);
 
-    return { packetId: id, packetType: type, packetBody: body, packetValid: valid };
+    return { packetId: id, packetType: type, packetBody: body, packetValid: valid ? true : false };
 }
 
 module.exports = { PACKET_TYPE, PACKET_INFO, structPacket, destructPacket };
