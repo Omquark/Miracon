@@ -7,6 +7,7 @@ const { addUsers } = require("./User");
 const { addRoles, getRoles } = require("./Role");
 const { addGroups } = require("./Group");
 const { initDatabase } = require("./db");
+const { Commands } = require("../commands/CmdDef");
 
 /**
  * Initilizes the users for access to Miracon. This will read from the ops.json file. If this file does not exist, this will fail.
@@ -17,12 +18,16 @@ async function InitUsers() {
   await initDatabase();
 
   logEvent(LogLevel.INFO, 'Creating the default roles to align with minecraft security levels');
-  const createdRoles = [
+  const defaultLevelRoles = [
     { name: 'Level 1' },
     { name: 'Level 2' },
     { name: 'Level 3' },
     { name: 'Level 4' },
   ];
+  const readCommandRoles = Commands
+    .filter(command => typeof command?.name === 'string' && command.name.startsWith('READ_'))
+    .map(command => ({ name: command.name, critical: true }));
+  const createdRoles = [...defaultLevelRoles, ...readCommandRoles];
 
   logEvent(LogLevel.INFO, 'Adding the new roles to the database');
   await addRoles(createdRoles);
@@ -112,7 +117,24 @@ async function InitUsers() {
     critical: true
   }
 
+  const seleniumReadRoleIds = readCommandRoles
+    .map(role => newRoles.find(foundRole => foundRole?.name === role.name)?.id)
+    .filter(roleId => typeof roleId === 'string' && roleId.trim() !== '');
+
+  const seleniumUser = {
+    name: 'Selenium',
+    password: 'Mi1n3e&Cr4\\tf$',
+    email: 'selenium@miracon.com',
+    preferences: {},
+    roles: seleniumReadRoleIds,
+    groups: [],
+    active: true,
+    changePassword: false,
+    critical: false,
+  };
+
   createdUsers.push(defaultAdmin);
+  createdUsers.push(seleniumUser);
 
   logEvent(LogLevel.INFO, 'Hashing passwords');
 
@@ -130,7 +152,7 @@ async function InitUsers() {
 
   logEvent(LogLevel.WARN, `Created default users, and admins based on the ops.json`);
   logEvent(LogLevel.WARN, 'Users, groups, and roles have been created to align with the security level used by minecraft.');
-  logEvent(LogLevel.WARN, 'All users have the same password and will be required to change at the next login.');
+  logEvent(LogLevel.WARN, 'All users have the same password and most will be required to change at next login (automation users may be exempt).');
   logEvent(LogLevel.WARN, 'This will also force them to update any other information not provided by the ops.json such as email');
   logEvent(LogLevel.WARN, 'A default admin has also been created to manage roles as needed. You can use this to assign roles then disable later if you need.');
   logEvent(LogLevel.WARN, 'By default this has only access to the roles, but as it does, it effectively has total access.');

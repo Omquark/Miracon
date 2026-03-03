@@ -14,7 +14,7 @@ const ConsoleCommand = {
   'id': 'command id', //The id for this command, for database purposes, expects a uuidv4
   'description': 'The default command. This is not a valid console command.', //A description of the command
   'required': [], //Required arguments for the command, in the order the console expects, contains info on what these values can/should be as well
-  'optional': [], //Optiona arguments for the command, in the order the console expects
+  'optional': [], //Optional arguments for the command, in the order the console expects
   'roles': [], //A list of roles which can execute the command. Defaults to minecrafts 'levels'
   'blacklistRoles': [], //Roles which cannot explicitly execute this command.
 }
@@ -130,7 +130,7 @@ const ConsoleCommands = [
   },
   {
     'name': 'weather',
-    'description': 'Sets teh weather',
+    'description': 'Sets the weather',
     'required': [{ name: 'Weather', type: 'enum', values: ['clear', 'rain', 'thunder'] }],
     'optional': [{ name: 'Duration', type: 'string' }],
     'roles': ['Level 2'],
@@ -142,7 +142,7 @@ const ConsoleCommands = [
     'required': [{ name: 'player', type: 'string' }, { name: 'message', type: 'string' }],
     'optional': [],
     'roles': ['Level 0'],
-    'blacklistedroles': [''],
+    'blacklistRoles': [''],
   },
 ]
 
