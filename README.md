@@ -23,3 +23,24 @@ Now, you're ready to actually start the server. You will need NodeJS installed p
 The meat of Miracon, the commands can be executed by any user created at this moment, regardless of access level. Commands executed will be shown as AUDIT in the log file, so commands executed can be traced to any ops.
 
 Later updates intended will include basic functionality as adding, removing, and disabling users, roles, and groups. There are some issues which are known about, which can be viewed in the notes.txt file in the base directory. Commands which are implemented will show up on the command page, and are currently working so far with testing done, but can be raised in the issues tab if something does not work.
+
+Selenium e2e (login)
+This repo includes a starter Selenium script that logs in as the default Selenium user and shows the page while it runs.
+
+Setup:
+- Install dependencies: npm install
+- Start the server: npm run dev (or npm start)
+- Run the login script: npm run e2e:selenium
+
+Defaults:
+- Username: Selenium
+- Password: Mi1n3e&Cr4\tf$
+
+Overrides:
+- SELENIUM_USERNAME: login username
+- SELENIUM_PASSWORD: login password (use this to avoid leaving defaults on public hubs)
+- SELENIUM_BASE_URL: base URL (defaults to http://localhost:3011)
+- SELENIUM_HEADLESS: set to 1 for headless mode
+- SELENIUM_KEEP_OPEN_MS: how long to keep the browser open (default 3000ms)
+
+You can change the Selenium user's password through the `/change_password` endpoint after logging in.
