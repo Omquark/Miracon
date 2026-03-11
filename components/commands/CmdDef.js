@@ -1,5 +1,5 @@
-//Default, reaquired commands. These commands are required by Miracon for basic access and cannot be removed.
-//Changing this data can result in Miracon not working as aexpected
+//Default, required commands. These commands are required by Miracon for basic access and cannot be removed.
+//Changing this data can result in Miracon not working as expected
 
 const Command =
 {

@@ -1,88 +1,43 @@
-import { bytesToBase64 } from "../../../../../components/utility/Utility";
-import { usersActionTypes } from "../context/admin/users";
+const { bytesToBase64 } = require("../../../../../components/utility/Utility");
+const { isValidMutationVerb, requestApi } = require("./client");
+const usersActionTypes = {
+    REFRESH_USER: 'REFRESH_USER',
+    RESPONSE_USER: 'RESPONSE_USER',
+};
 
-export async function pullUsers(dispatch) {
-
-    let response;
-    let data;
-
-    try {
-        response = await fetch(`http://${location.host}/users`,
-            {
-                headers: {
-                    'content-type': 'application/json',
-                },
-                method: 'GET',
-            });
-
-        data = await response.json();
-
-    } catch (err) {
-        console.log(err);
-        data = { error: 'Failed to access /users on GET!' }
-    }
+async function pullUsers(dispatch) {
+    const data = await requestApi('/users', { method: 'GET' });
 
     dispatch({ type: usersActionTypes.REFRESH_USER, payload: data });
 }
 
-export async function mutateUsers(users, dispatch, verb) {
-    let response;
-    let data;
-
-    if (verb.toUpperCase() !== 'POST' && verb.toUpperCase() !== 'PUT' && verb.toUpperCase() !== 'DELETE') {
-        data = { error: 'A valid verb was not supplied when attempting to mutate a user! Supply either POST, PUT, or DELETE for action.' }
-        dispatch({ type: groupsActionTypes.RESPONSE_GROUP, payload: data });
+async function mutateUsers(users, dispatch, verb) {
+    if (!isValidMutationVerb(verb)) {
+        const data = { error: 'A valid verb was not supplied when attempting to mutate a user! Supply either POST, PUT, or DELETE for action.' }
+        dispatch({ type: usersActionTypes.RESPONSE_USER, payload: data });
         return;
     }
 
-    const payload = { data: users };
-    payload.data.password = bytesToBase64(users.password);
-
-    try {
-        response = await fetch(`http://${location.host}/users`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    'content-type': 'application/json',
-                },
-                method: verb.toUpperCase(),
-            });
-
-        data = await response.json();
-    } catch (err) {
-        console.log(err);
-        data = { error: 'Failed to access /users on POST!' }
+    const payload = { ...users };
+    if (typeof users?.password === 'string' && users.password.length > 0) {
+        payload.password = bytesToBase64(users.password);
     }
+    const data = await requestApi('/users', { method: verb.toUpperCase(), data: payload });
 
     dispatch({ type: usersActionTypes.RESPONSE_USER, payload: data });
 }
 
-export async function changePassword(userinfo) {
-    let response;
-    let data;
+async function changePassword(userinfo) {
+    const payload = {
+        ...userinfo,
+        oldPassword: bytesToBase64(userinfo.oldPassword),
+        newPassword: bytesToBase64(userinfo.newPassword),
+    };
 
-    userinfo.oldPassword = bytesToBase64(userinfo.oldPassword);
-    userinfo.newPassword = bytesToBase64(userinfo.newPassword);
-
-    try {
-        response = await fetch(`http://${location.host}/change_password`,
-            {
-                body: JSON.stringify({ userinfo: userinfo }),
-                headers: {
-                    'content-type': 'application/json',
-                },
-                method: 'PUT',
-            });
-        data = await response.json();
-    } catch (err) {
-        console.log(err);
-        data = { error: 'Failed to update password on PUT' }
-    }
-
-    return data;
+    return requestApi('/change_password', { method: 'PUT', body: { userinfo: payload } });
 }
 
-export async function retrieveUUID(username) {
+async function retrieveUUID(username) {
     let response;
     let data;
 
@@ -102,3 +57,5 @@ export async function retrieveUUID(username) {
 
     return data;
 }
+
+module.exports = { pullUsers, mutateUsers, changePassword, retrieveUUID };

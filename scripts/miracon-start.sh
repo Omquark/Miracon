@@ -1,24 +1,11 @@
 #!/bin/bash
 
-USER=$(whoami)
+set -euo pipefail
 
-EXPECTED_USER=miracon
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ ! $EXPECTED_USER = $USER ];
-then
-	echo "This program must be run as $EXPECTED_USER"
-	exit 1
-fi
+# Backward-compatible entrypoint. Historically this script only installed app files,
+# so default to skipping Mongo unless caller explicitly sets INSTALL_MONGO=1.
+export INSTALL_MONGO="${INSTALL_MONGO:-0}"
 
-cd $INSTALL_PATH/bin
-mongod --bind_ip_all &
-sleep 5
-if [ -f "$INSTALL_PATH/scripts/mongo-init.js" ];
-then
-	echo "Detected mongo start script, setting up the database user"
-	mongosh < "$INSTALL_PATH/scripts/mongo-init.js"
-	rm "$INSTALL_PATH/scripts/mongo-init.js"
-fi
-
-# node index.js
-node index.js > $LOG_PATH/$LOG_FOLDER/miracon.log 2>&1
+exec "${SCRIPT_DIR}/start.sh" "$@"

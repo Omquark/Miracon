@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState, useContext, useRef } from 'react';
-import { changePassword, pullUsers, mutateUsers } from './api/users';
+import { useEffect, useState, useContext } from 'react';
 import Modal from '@/app/components/Modal/Modal';
 import TextBox from '@/app/components/TextBox/TextBox';
 import Button from '@/app/components/Button/Button';
@@ -13,7 +12,6 @@ import { AdminGroupsContext, groupsActionTypes } from './context/admin/groups';
 import { IoMdArrowDropdown } from 'react-icons/io';
 
 export default function User() {
-
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
@@ -23,15 +21,10 @@ export default function User() {
     const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
 
-    const isInitialRender = useRef(true);
-
     useEffect(() => {
-        if (isInitialRender.current) {
-            dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
-            dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
-            dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
-            isInitialRender.current = false;
-        }
+        dispatchAdminUsers({ type: usersActionTypes.GET_USER, context: dispatchAdminUsers });
+        dispatchAdminGroups({ type: groupsActionTypes.GET_GROUP, context: dispatchAdminGroups });
+        dispatchAdminRoles({ type: rolesActionTypes.GET_ROLE, context: dispatchAdminRoles });
     }, [dispatchAdminUsers, dispatchAdminGroups, dispatchAdminRoles]);
 
     const showCreateUserModal = () => {
@@ -45,37 +38,24 @@ export default function User() {
         saveButton.hidden = true;
         createButton.hidden = undefined;
         removeButton.hidden = true;
-    }
+    };
 
     const showUserModal = async (user) => {
         const selectedRoles = {};
         const selectedGroups = {};
+        const userRoles = Array.isArray(user.roles) ? user.roles : [];
+        const userGroups = Array.isArray(user.groups) ? user.groups : [];
 
         adminRoles.forEach(role => {
-            let selected = false;
-            let foundRole = user.roles.find(grole => {
-                return grole === role.id;
-            });
-
-            if (foundRole) {
-                selected = true;
-            }
-            selectedRoles[`${role.name}`] = selected;
+            selectedRoles[role.name] = userRoles.includes(role.id);
         });
 
         adminGroups.forEach(group => {
-            let selected = false;
-            let foundGroup = user.groups.find(ugroup => {
-                return ugroup === group.id;
-            })
-
-            if (foundGroup) selected = true;
-            selectedGroups[group.name] = selected;
+            selectedGroups[group.name] = userGroups.includes(group.id);
         });
 
         const message = (
             <form>
-                {/* onChange={(event) => handleFormChange(event)}> */}
                 <TextBox
                     className=''
                     type='text'
@@ -130,7 +110,7 @@ export default function User() {
                     defaultChecked={user.active ? true : false}
                 />
             </form>
-        )
+        );
 
         setModalMessage(message);
         setModalShown(true);
@@ -139,27 +119,29 @@ export default function User() {
         const createButton = document.getElementById('create-user');
         const removeButton = document.getElementById('remove-user');
         const changePassword = document.getElementById('UserChangePassword');
-        if (changePassword) changePassword.checked = user.changePassword;
+        if (changePassword) changePassword.checked = Boolean(user.changePassword);
         const active = document.getElementById('UserActive');
-        if (active) active.checked = user.active;
-
-        console.log(user);
+        if (active) active.checked = Boolean(user.active);
 
         saveButton.hidden = undefined;
         createButton.hidden = true;
         removeButton.hidden = undefined;
-    }
+    };
 
     const removeUser = () => {
-        let userID = document.getElementById('UserID')?.value;
+        const userID = document.getElementById('UserID')?.value;
         if (!userID) {
             alert('The User ID cannot be found!');
             return;
         }
 
-        dispatchAdminUsers({ type: groupsActionTypes.REMOVE_GROUP, payload: { id: payload }, context: dispatchAdminUsers });
+        dispatchAdminUsers({
+            type: usersActionTypes.REMOVE_USER,
+            payload: { id: userID },
+            context: dispatchAdminUsers
+        });
         setModalShown(false);
-    }
+    };
 
     const saveUser = async (updated = true) => {
         let savingUserID;
@@ -170,17 +152,16 @@ export default function User() {
             return;
         }
 
-        const changingUser = updated ?
-            adminUsers.find(user => {
-                return user.id === savingUserID;
-            }) :
-            { name: '', id: '', password: '', email: '', roles: [], groups: '', changePassword: true }
+        const existingUser = updated ? adminUsers.find(user => user.id === savingUserID) : undefined;
+        const changingUser = existingUser
+            ? { ...existingUser }
+            : { name: '', id: '', password: '', email: '', roles: [], groups: [], changePassword: true };
 
         const saveButton = document.getElementById('save-user');
         const rolesSelection = document.getElementById('UserRoles');
         const groupsSelection = document.getElementById('UserGroups');
 
-        saveButton.innerHTML = 'Loading'
+        saveButton.innerHTML = 'Loading';
         saveButton.disabled = true;
 
         changingUser.name = document.getElementById('UserName').value;
@@ -189,48 +170,36 @@ export default function User() {
         changingUser.changePassword = document.getElementById('UserChangePassword').checked;
         changingUser.active = document.getElementById('UserActive').checked;
 
-        const roleNames = Array.from(rolesSelection.getElementsByTagName('input'))
-            .filter(elem => elem.type === 'checkbox')
-            .filter(elem => elem.checked)
-            .map(elem => elem.id.split('-')[1]);
+        const roleNames = rolesSelection
+            ? Array.from(rolesSelection.getElementsByTagName('input'))
+                .filter(elem => elem.type === 'checkbox' && elem.checked)
+                .map(elem => elem.id.split('-')[1])
+            : [];
 
-        const newRoles = adminRoles.filter(adminRole => {
-            let match = false;
-            roleNames.forEach(roleName => {
-                if (roleName === adminRole.name) {
-                    match = true;
-                }
-            });
-            return match;
-        })
+        changingUser.roles = adminRoles
+            .filter(adminRole => roleNames.includes(adminRole.name))
             .map(adminRole => adminRole.id);
 
-        const groupNames = Array.from(groupsSelection.getElementsByTagName('input'))
-            .filter(elem => elem.type === 'checkbox')
-            .filter(elem => elem.checked)
-            .map(elem => elem.id.split('-')[1]);
+        const groupNames = groupsSelection
+            ? Array.from(groupsSelection.getElementsByTagName('input'))
+                .filter(elem => elem.type === 'checkbox' && elem.checked)
+                .map(elem => elem.id.split('-')[1])
+            : [];
 
-        const newGroups = adminGroups.filter(adminGroup => {
-            let match = false;
-            groupNames.forEach(groupName => {
-                if (groupName === adminGroup.name) {
-                    match = true;
-                }
-            });
-            return match;
-        })
+        changingUser.groups = adminGroups
+            .filter(adminGroup => groupNames.includes(adminGroup.name))
             .map(adminGroup => adminGroup.id);
 
-        changingUser.roles = newRoles;
-        changingUser.groups = newGroups;
+        await dispatchAdminUsers({
+            type: updated ? usersActionTypes.UPDATE_USER : usersActionTypes.CREATE_USER,
+            payload: changingUser,
+            context: dispatchAdminUsers
+        });
 
-        await dispatchAdminUsers({ type: updated ? usersActionTypes.UPDATE_USER : usersActionTypes.CREATE_USER, payload: changingUser, context: dispatchAdminUsers });
-
-        saveButton.innerHTML = 'Save'
+        saveButton.innerHTML = 'Save';
         saveButton.disabled = false;
-
         setModalShown(false);
-    }
+    };
 
     const footerButtons = (
         <>
@@ -254,12 +223,12 @@ export default function User() {
                 enabled={true} >Cancel</Button>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => removeUser}
+                onClick={() => removeUser()}
                 id='remove-user'
                 type='submit'
                 enabled={true} >Delete</Button>
         </>
-    )
+    );
 
     const sortBy = (column) => {
         const newSorted = { ...sorted };
@@ -270,7 +239,15 @@ export default function User() {
             newSorted.ascending = true;
         }
         setSorted(newSorted);
-    }
+    };
+
+    const sortedUsers = Array.isArray(adminUsers)
+        ? [...adminUsers].sort((a, b) => {
+            const lhs = String(a?.[sorted.column] ?? '');
+            const rhs = String(b?.[sorted.column] ?? '');
+            return sorted.ascending ? lhs.localeCompare(rhs) : rhs.localeCompare(lhs);
+        })
+        : [];
 
     return (
         <div className='text-center'>
@@ -329,25 +306,21 @@ export default function User() {
                 </thead>
                 <tbody>
                     {
-                        adminUsers && Array.isArray(adminUsers) ?
-                            adminUsers
-                                .sort((a, b) =>
-                                    sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column]
-                                )
-                                .map(user => {
-                                    if (!user) return <></>
-                                    return (
-                                        <tr
-                                            className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
-                                            onClick={() => showUserModal(user)}
-                                            key={user.id}>
-                                            <td>{user.id}</td>
-                                            <td>{user.name}</td>
-                                            <td>{user.email}</td>
-                                        </tr>
-                                    )
-                                })
-                            : <></>//users && Array.isArray(users) ? 
+                        sortedUsers.length > 0 ?
+                            sortedUsers.map(user => {
+                                if (!user) return null;
+                                return (
+                                    <tr
+                                        className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
+                                        onClick={() => showUserModal(user)}
+                                        key={user.id}>
+                                        <td>{user.id}</td>
+                                        <td>{user.name}</td>
+                                        <td>{user.email}</td>
+                                    </tr>
+                                );
+                            })
+                            : null
                     }
                 </tbody>
             </table>
@@ -355,5 +328,5 @@ export default function User() {
                 Create User
             </Button>
         </div>
-    )
+    );
 }

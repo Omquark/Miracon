@@ -1,25 +1,11 @@
-import { rolesActionTypes } from "../context/admin/roles";
+const { isValidMutationVerb, requestApi } = require("./client");
+const rolesActionTypes = {
+    REFRESH_ROLE: 'REFRESH_ROLE',
+    RESPONSE_ROLE: 'RESPONSE_ROLE',
+};
 
-export async function pullRoles(dispatch) {
-
-    let response;
-    let data;
-
-    try {
-        response = await fetch(`http://${location.host}/roles`,
-            {
-                headers: {
-                    'content-type': 'application/json',
-                },
-                method: 'GET',
-            });
-
-        data = await response.json();
-
-    } catch (err) {
-        console.log(err);
-        data = { error: 'Failed to access /roles on GET!' }
-    }
+async function pullRoles(dispatch) {
+    const data = await requestApi('/roles', { method: 'GET' });
 
     if (data.error) {
         alert(`There was an error attempting to get the roles from the server!\n${data.error}`);
@@ -29,33 +15,16 @@ export async function pullRoles(dispatch) {
     dispatch({ type: rolesActionTypes.REFRESH_ROLE, payload: data });
 }
 
-export async function mutateRoles(roles, dispatch, verb) {
-    let response;
-    let data;
-
-    if (verb.toUpperCase() !== 'POST' && verb.toUpperCase() !== 'PUT' && verb.toUpperCase() !== 'DELETE') {
-        data = { error: 'A valid verb was not supplied when attempting to mutate a role! Supply either POST, PUT, or DELETE for action.' }
+async function mutateRoles(roles, dispatch, verb) {
+    if (!isValidMutationVerb(verb)) {
+        const data = { error: 'A valid verb was not supplied when attempting to mutate a role! Supply either POST, PUT, or DELETE for action.' }
         dispatch({ type: rolesActionTypes.RESPONSE_ROLE, payload: data });
         return;
     }
 
-    const payload = { data: roles }
-
-    try {
-        response = await fetch(`http://${location.host}/roles`,
-            {
-                body: JSON.stringify(payload),
-                headers: {
-                    'content-type': 'application/json',
-                },
-                method: verb.toUpperCase(),
-            });
-
-        data = await response.json();
-    } catch (err) {
-        console.log(err);
-        data = { error: `Failed to access /roles on ${verb}!` }
-    }
+    const data = await requestApi('/roles', { method: verb.toUpperCase(), data: roles });
 
     dispatch({ type: rolesActionTypes.RESPONSE_ROLE, payload: data });
 }
+
+module.exports = { pullRoles, mutateRoles };

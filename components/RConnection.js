@@ -2,13 +2,36 @@ const net = require('net');
 
 const { structPacket, PACKET_TYPE, destructPacket } = require('./Packet');
 const { logError, logEvent, LogLevel } = require('./Log');
-const { getRoles } = require('./rbac/Role');
 
 //Default configurable options for RCON
-const RCONOptions = {
+const DEFAULT_RCON_OPTIONS = {
     password: 'password',
     serverAddress: 'localhost',
-    serverPort: '25575',
+    serverPort: 25575,
+};
+
+const MAX_PACKET_BYTES = 4096;
+const PACKET_OVERHEAD_BYTES = 14; // size + id + type + two null terminators
+const MAX_PAYLOAD_BYTES = MAX_PACKET_BYTES - PACKET_OVERHEAD_BYTES;
+const RESPONSE_IDLE_MS = 25;
+
+function chunkCommand(command) {
+    const buffer = Buffer.from(command, 'ascii');
+    if (buffer.length <= MAX_PAYLOAD_BYTES) return [command];
+
+    const chunks = [];
+    for (let offset = 0; offset < buffer.length; offset += MAX_PAYLOAD_BYTES) {
+        chunks.push(buffer.slice(offset, offset + MAX_PAYLOAD_BYTES).toString('ascii'));
+    }
+    return chunks;
+}
+
+function writePacket(socket, payload) {
+    return new Promise((resolve) => {
+        const canWrite = socket.write(payload);
+        if (canWrite) return resolve();
+        socket.once('drain', resolve);
+    });
 }
 
 /**
@@ -22,17 +45,15 @@ class RConnection {
      * @param {RCONOptions} options Options to connect to the minecraft server
      */
     constructor(options) {
-        if (!options) {
-            options = new RCONOptions;
-        }
+        const resolvedOptions = { ...DEFAULT_RCON_OPTIONS, ...(options || {}) };
         ({
             password: this.password = 'password',
             serverAddress: this.serverAddress = 'localhost',
             serverPort: this.serverPort = 25575
-        } = options);
+        } = resolvedOptions);
 
         this.connected = false;
-        this.socket = undefined;
+        this.socket = null;
         this.payload = '';
     }
 
@@ -84,7 +105,7 @@ class RConnection {
             });
 
             this.socket.on('close', (hadError) => {
-                const message = `Connection was closed and listeners have been removed.' + ${hadError ? ' There was an error which caused the close' : ''}`;
+                const message = `Connection was closed and listeners have been removed.${hadError ? ' There was an error which caused the close' : ''}`;
                 logEvent(LogLevel.INFO, message);
                 this.socket.removeAllListeners(); //Remove all listeners because the connection no longer exists.
                 this.connected = false;
@@ -102,29 +123,68 @@ class RConnection {
     send(command) {
         return new Promise((resolve, reject) => {
             if (!command) {
-                logEvent('Attempted to call command with no command arguement!');
-                return reject('Attempted to call command with no command arguement!');
+                logEvent(LogLevel.WARN, 'Attempted to call command with no command argument!');
+                return reject('Attempted to call command with no command argument!');
+            }
+            if (!this.socket) {
+                return reject('Socket is not connected. Call login before sending commands.');
             }
 
-
-            this.payload = structPacket({
+            const commandChunks = chunkCommand(command);
+            const packets = commandChunks.map((chunk) => structPacket({
                 packetId: 0x11,
                 packetType: PACKET_TYPE.PACKET_COMMAND,
-                packetBody: command,
-            });
+                packetBody: chunk,
+            }));
+            this.payload = packets[0];
 
             try {
-                this.socket.on('data', (data) => {
-                    let response;
-                    response = destructPacket(data);
+                const responses = [];
+                let idleTimer;
+
+                const finalize = () => {
+                    clearTimeout(idleTimer);
+                    this.socket.off('data', onData);
+                    this.socket.off('error', onError);
+                    resolve(responses.join(''));
+                };
+
+                const scheduleFinalize = () => {
+                    clearTimeout(idleTimer);
+                    idleTimer = setTimeout(finalize, RESPONSE_IDLE_MS);
+                };
+
+                const onError = (err) => {
+                    clearTimeout(idleTimer);
+                    this.socket.off('data', onData);
+                    this.socket.off('error', onError);
+                    return reject(err);
+                };
+
+                const onData = (data) => {
+                    const response = destructPacket(data);
                     logEvent(LogLevel.DEBUG, `Data from command: ${JSON.stringify(response)}`);
-                    resolve(response.packetBody);
-                });
+                    if (response.packetId === -1) {
+                        clearTimeout(idleTimer);
+                        this.socket.off('data', onData);
+                        this.socket.off('error', onError);
+                        return reject('Failed to get response from RCON. Check your password and settings and try again.');
+                    }
+                    responses.push(response.packetBody);
+                    scheduleFinalize();
+                };
+
+                this.socket.on('data', onData);
+                this.socket.on('error', onError);
+
                 logEvent(LogLevel.DEBUG, 'Writing data to the socket');
-                this.socket.write(this.payload);
+                const writePromise = packets.reduce((promise, packet) => {
+                    return promise.then(() => writePacket(this.socket, packet));
+                }, Promise.resolve());
+                writePromise.catch(onError);
             } catch (err) {
-                logError(LogLevel.ERROR, `Error attempting to send command ${command}! Logging error...`);
-                logError(LogLevel.ERROR, err);
+                logError(`Error attempting to send command ${command}! Logging error...`);
+                logError(err);
                 return reject(err);
             }
 

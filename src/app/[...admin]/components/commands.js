@@ -1,3 +1,5 @@
+'use client'
+
 import Modal from "@/app/components/Modal/Modal";
 import MultiSelection from "@/app/components/MultiSelection/MultiSelection";
 import TextBox from "@/app/components/TextBox/TextBox";
@@ -8,7 +10,6 @@ import { IoMdArrowDropdown } from "react-icons/io";
 import { AdminRolesContext, rolesActionTypes } from "./context/admin/roles";
 
 export default function Command() {
-
   const [modalShown, setModalShown] = useState(false);
   const [modalMessage, setModalMessage] = useState(<></>);
   const [modalHeader, setModalHeader] = useState('');
@@ -25,25 +26,12 @@ export default function Command() {
   const showCommandModal = (command) => {
     const selectedRoles = {};
     const blacklistSelected = {};
+    const commandRoles = Array.isArray(command.roles) ? command.roles : [];
+    const commandBlacklistRoles = Array.isArray(command.blacklistRoles) ? command.blacklistRoles : [];
 
     adminRoles.forEach(role => {
-      let selected = false;
-      let foundRole = command.roles.find(crole => {
-        return crole === role.id;
-      });
-      if (foundRole) {
-        selected = true;
-      }
-      selectedRoles[role.name] = selected;
-
-      selected = false;
-      let foundBlack = command.blacklistRoles.find(brole => {
-        return brole === role.id;
-      })
-      if (foundBlack) {
-        selected = true;
-      }
-      blacklistSelected[role.name] = selected;
+      selectedRoles[role.name] = commandRoles.includes(role.id);
+      blacklistSelected[role.name] = commandBlacklistRoles.includes(role.id);
     });
 
     const message = (
@@ -74,25 +62,25 @@ export default function Command() {
           className=''
           placeholder='Blacklisted roles'
           id='CommandBlacklistRoles'
-          values={selectedRoles}
+          values={blacklistSelected}
         />
       </>
-    )
+    );
 
     setModalMessage(message);
-    setModalShown(true)
+    setModalShown(true);
     setModalHeader(command.name);
-  }
+  };
 
-  const SaveCommand = async () => {
+  const saveCommand = async () => {
     alert("Save command placeholder");
-  }
+  };
 
   const footerButtons = (
     <>
       <Button
         className='mx-2 my-2 '
-        onClick={SaveCommand}
+        onClick={saveCommand}
         id='save-command'
         type='submit'
         enabled={true} >Save</Button>
@@ -103,18 +91,26 @@ export default function Command() {
         type='button'
         enabled={true} >Cancel</Button>
     </>
-  )
+  );
 
   const sortBy = (column) => {
     const newSorted = { ...sorted };
     if (newSorted.column === column) {
-      newSorted.ascending = !sorted.ascending;
+      newSorted.ascending = !newSorted.ascending;
     } else {
       newSorted.column = column;
       newSorted.ascending = true;
     }
     setSorted(newSorted);
-  }
+  };
+
+  const sortedCommands = Array.isArray(adminCommands)
+    ? [...adminCommands].sort((a, b) => {
+      const lhs = String(a?.[sorted.column] ?? '');
+      const rhs = String(b?.[sorted.column] ?? '');
+      return sorted.ascending ? lhs.localeCompare(rhs) : rhs.localeCompare(lhs);
+    })
+    : [];
 
   return (
     <div className='text-center'>
@@ -162,25 +158,21 @@ export default function Command() {
         </thead>
         <tbody>
           {
-            adminCommands && Array.isArray(adminCommands) ?
-              adminCommands
-                .sort((a, b) => {
-                  return sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column];
-                })
-                .map(command => {
-                  if (!command) return <></>
-                  return <tr
-                    className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
-                    onClick={() => showCommandModal(command)}
-                    key={command.id}>
-                    <td>{command.id}</td>
-                    <td>{command.name}</td>
-                  </tr>
-                })
-              : <></> //adminCommands && Array.isArray(adminCommands) ?
+            sortedCommands.length > 0 ?
+              sortedCommands.map(command => {
+                if (!command) return null;
+                return <tr
+                  className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
+                  onClick={() => showCommandModal(command)}
+                  key={command.id}>
+                  <td>{command.id}</td>
+                  <td>{command.name}</td>
+                </tr>;
+              })
+              : null
           }
         </tbody>
       </table>
     </div>
-  )
+  );
 }

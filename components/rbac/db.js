@@ -28,7 +28,7 @@ async function openConnection() {
   logEvent(LogLevel.DEBUG, `urlString: ${urlString}`);
   try {
     client = new MongoClient(urlString);
-    miracondb = client.db();
+    client.db();
   } catch (err) {
     logError(err);
     logError('There was an error when attempting to connect to the database! Closing connection');
@@ -75,7 +75,7 @@ async function createIndexes() {
 async function writeData(type, object) {
   let targetCollection;
   logEvent(LogLevel.INFO, 'Attempting to add data to the MongoDB database.')
-  checkConnection();
+  await checkConnection();
 
   targetCollection = await getCollection(type);
   if (!targetCollection) {
@@ -104,7 +104,7 @@ async function writeData(type, object) {
 }
 
 async function writeManyData(type, objects) {
-  checkConnection();
+  await checkConnection();
   if (!Array.isArray(objects) || objects.length === 0) {
     return [];
   }
@@ -161,10 +161,9 @@ async function writeManyData(type, objects) {
  */
 async function readData(type, object = undefined) {
   let targetCollection;
-  let documents = [];
   let returnedDocuments = [];
   logEvent(LogLevel.INFO, 'Attempting to read data to the MongoDB database.');
-  checkConnection();
+  await checkConnection();
 
   logEvent(LogLevel.DEBUG, 'Retrieving the collection to read.');
   targetCollection = await getCollection(type);
@@ -248,7 +247,7 @@ async function readManyData(type, objects) {
 async function updateData(type, oldObject, newObject) {
   let targetCollection;
   logEvent(LogLevel.INFO, 'Attempting to update data within the MongoDB.');
-  checkConnection();
+  await checkConnection();
   targetCollection = await getCollection(type);
   if (!targetCollection) {
     logEvent(LogLevel.WARN, 'Could not pull the collection to updateData. Check the type is correct and should be role, group, or user');
@@ -452,7 +451,7 @@ async function initDatabase() {
 
   await checkConnection();
   const tables = ['users', 'groups', 'roles', 'commands', 'console_commands']
-  for (tableName of tables) {
+  for (const tableName of tables) {
     try {
       await client.db().dropCollection(tableName);
       await client.db().createCollection(tableName);

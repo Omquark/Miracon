@@ -10,11 +10,10 @@ import { AdminRolesContext, rolesActionTypes } from './context/admin/roles';
 import { IoMdArrowDropdown } from 'react-icons/io';
 
 export default function Group() {
-
     const [modalShown, setModalShown] = useState(false);
     const [modalMessage, setModalMessage] = useState(<></>);
     const [modalHeader, setModalHeader] = useState('');
-    const [sorted, setSorted] = useState({ column: 'name', ascending: true })
+    const [sorted, setSorted] = useState({ column: 'name', ascending: true });
 
     const { adminGroups, dispatchAdminGroups } = useContext(AdminGroupsContext);
     const { adminRoles, dispatchAdminRoles } = useContext(AdminRolesContext);
@@ -27,7 +26,7 @@ export default function Group() {
     const showCreateGroupModal = () => {
         const group = { name: '', id: '', roles: [] };
         showGroupModal(group);
-        setModalHeader(`Create new Group`);
+        setModalHeader('Create new Group');
         const saveButton = document.getElementById('save-group');
         const createButton = document.getElementById('create-group');
         const removeButton = document.getElementById('remove-group');
@@ -35,26 +34,18 @@ export default function Group() {
         saveButton.hidden = true;
         createButton.hidden = undefined;
         removeButton.hidden = true;
-    }
+    };
 
     const showGroupModal = async (group) => {
         const selectedRoles = {};
+        const groupRoles = Array.isArray(group.roles) ? group.roles : [];
 
         adminRoles.forEach(role => {
-            let selected = false;
-            let foundRole = group.roles.find(grole => {
-                return grole === role.id;
-            });
-
-            if (foundRole) {
-                selected = true;
-            }
-            selectedRoles[role.name] = selected;
-        })
+            selectedRoles[role.name] = groupRoles.includes(role.id);
+        });
 
         const message = (
-            <div
-                className='px-2 '>
+            <div className='px-2 '>
                 <TextBox
                     className=''
                     type='text'
@@ -77,7 +68,7 @@ export default function Group() {
                     values={selectedRoles}
                 />
             </div>
-        )
+        );
 
         setModalMessage(message);
         setModalShown(true);
@@ -89,20 +80,20 @@ export default function Group() {
         saveButton.hidden = undefined;
         createButton.hidden = true;
         removeButton.hidden = undefined;
-    }
+    };
 
     const removeGroup = () => {
-        let groupID = document.getElementById('GroupID')?.value;
+        const groupID = document.getElementById('GroupID')?.value;
         if (!groupID) {
-            alert('The group ID cannot be found!')
+            alert('The group ID cannot be found!');
             return;
         }
 
         dispatchAdminGroups({ type: groupsActionTypes.REMOVE_GROUP, payload: { id: groupID }, context: dispatchAdminGroups });
         setModalShown(false);
-    }
+    };
 
-    const SaveGroup = async (updated = true) => {
+    const saveGroup = async (updated = true) => {
         let savingGroupID;
         try {
             savingGroupID = document.getElementById('GroupID').value;
@@ -111,57 +102,49 @@ export default function Group() {
             return;
         }
 
-        const changingGroup = updated ?
-            adminGroups.find(group => {
-                return group.id === savingGroupID;
-            }) :
-            { name: '', id: '', roles: [] }
+        const existingGroup = updated ? adminGroups.find(group => group.id === savingGroupID) : undefined;
+        const changingGroup = existingGroup ? { ...existingGroup } : { name: '', id: '', roles: [] };
 
         const saveButton = document.getElementById('save-group');
         const rolesSelection = document.getElementById('GroupRoles');
 
-        saveButton.innerHTML = 'Loading'
+        saveButton.innerHTML = 'Loading';
         saveButton.disabled = true;
 
         changingGroup.name = document.getElementById('GroupName').value;
 
-        const roleNames = Array.from(rolesSelection.getElementsByTagName('input'))
-            .filter(elem => elem.type === 'checkbox')
-            .filter(elem => elem.checked)
-            .map(elem => elem.id.split('-')[1]);
+        const roleNames = rolesSelection
+            ? Array.from(rolesSelection.getElementsByTagName('input'))
+                .filter(elem => elem.type === 'checkbox' && elem.checked)
+                .map(elem => elem.id.split('-')[1])
+            : [];
 
-        const newRoles = adminRoles.filter(adminRole => {
-            let match = false;
-            roleNames.forEach(roleName => {
-                if (roleName === adminRole.name) {
-                    match = true;
-                }
-            });
-            return match;
-        })
+        changingGroup.roles = adminRoles
+            .filter(adminRole => roleNames.includes(adminRole.name))
             .map(adminRole => adminRole.id);
 
-        changingGroup.roles = newRoles;
+        dispatchAdminGroups({
+            type: updated ? groupsActionTypes.UPDATE_GROUP : groupsActionTypes.CREATE_GROUP,
+            payload: changingGroup,
+            context: dispatchAdminGroups
+        });
 
-        dispatchAdminGroups({ type: updated ? groupsActionTypes.UPDATE_GROUP : groupsActionTypes.CREATE_GROUP, payload: changingGroup, context: dispatchAdminGroups });
-
-        saveButton.innerHTML = 'Save'
+        saveButton.innerHTML = 'Save';
         saveButton.disabled = false;
-
         setModalShown(false);
-    }
+    };
 
     const footerButtons = (
         <>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => SaveGroup(true)}
+                onClick={() => saveGroup(true)}
                 id='save-group'
                 type='submit'
                 enabled={true} >Save</Button>
             <Button
                 className='mx-2 my-2 '
-                onClick={() => SaveGroup(false)}
+                onClick={() => saveGroup(false)}
                 id='create-group'
                 type='submit'
                 enabled={true} >Create</Button>
@@ -178,7 +161,7 @@ export default function Group() {
                 type='submit'
                 enabled={true} >Delete</Button>
         </>
-    )
+    );
 
     const sortBy = (column) => {
         const newSorted = { ...sorted };
@@ -189,7 +172,15 @@ export default function Group() {
             newSorted.ascending = true;
         }
         setSorted(newSorted);
-    }
+    };
+
+    const sortedGroups = Array.isArray(adminGroups)
+        ? [...adminGroups].sort((a, b) => {
+            const lhs = String(a?.[sorted.column] ?? '');
+            const rhs = String(b?.[sorted.column] ?? '');
+            return sorted.ascending ? lhs.localeCompare(rhs) : rhs.localeCompare(lhs);
+        })
+        : [];
 
     return (
         <div className='text-center'>
@@ -236,11 +227,9 @@ export default function Group() {
                 </thead>
                 <tbody>
                     {
-                        adminGroups && Array.isArray(adminGroups) ?
-                            adminGroups.sort((a, b) => {
-                                return sorted.ascending ? a[sorted.column] > b[sorted.column] : a[sorted.column] < b[sorted.column];
-                            }).map(group => {
-                                if (!group) return <></>
+                        sortedGroups.length > 0 ?
+                            sortedGroups.map(group => {
+                                if (!group) return null;
                                 return (
                                     <tr
                                         className='border odd:bg-neutral-300 dark:odd:bg-neutral-700 hover:cursor-pointer '
@@ -249,9 +238,9 @@ export default function Group() {
                                         <td>{group.id}</td>
                                         <td>{group.name}</td>
                                     </tr>
-                                )
+                                );
                             })
-                            : <></>//groups && Array.isArray(groups) ? 
+                            : null
                     }
                 </tbody>
             </table>
@@ -259,5 +248,5 @@ export default function Group() {
                 Create Group
             </Button>
         </div>
-    )
+    );
 }

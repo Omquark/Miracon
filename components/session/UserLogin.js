@@ -41,14 +41,16 @@ async function checkAndLoginUser(userInfo) {
         return { error: 'User account is inactive. Please contact an administrator for details.' }
     }
 
-    const resolvedRoles = [];
-    const userRoles = await resolveRoles(pulledUsers[0]);
-    for (let roleID of userRoles) {
-        logEvent(LogLevel.DEBUG, `roleID: ${roleID}`);
-        const role = await getRoles({ id: roleID });
-        const roleName = role[0].name;
-        resolvedRoles.push(roleName);
-    }
+    // const resolvedRoles = [];
+    let userRoles = (await resolveRoles(pulledUsers[0])).map(id => { return { id: id }; });
+    logEvent(LogLevel.DEBUG, `userRoles: ${userRoles}`);
+    const roles = await getRoles(userRoles);
+    logEvent(LogLevel.DEBUG, `roles: ${roles}`);
+    const resolvedRoles = roles.map(role => role.name);
+    // for (let role of roles) {
+    //     const roleName = role.name;
+    //     resolvedRoles.push(roleName);
+    // }
 
     let sessionInfo = {
         name: pulledUsers[0].name,

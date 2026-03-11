@@ -31,29 +31,26 @@ ENV DB_PASSWORD="bWlyYWNvbg=="
 ENV DB_URL="localhost"
 ENV DB_PORT="27017"
 ENV DB_NAME="miracon"
+ENV INSTALL_MONGO="1"
+ENV MONGO_VERSION="8.0"
+ENV CLEANUP_TEMP="1"
 
-COPY index.js package.json jsconfig.json next.config.js postcss.config.js tailwind.config.js ${TEMP_PATH}/
+COPY index.js package.json jsconfig.json postcss.config.js tailwind.config.js ${TEMP_PATH}/
 COPY src/ ${TEMP_PATH}/src/
 COPY components/ ${TEMP_PATH}/components/
 COPY config/ ${TEMP_PATH}/config/
 COPY scripts/ ${TEMP_PATH}/scripts/
 
+RUN ls -l ${TEMP_PATH}/scripts/
 
 USER root
-RUN apt-get install -y gnupg curl
-RUN curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
-  gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
-RUN echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main" | \
-  tee /etc/apt/sources.list.d/mongodb-org-8.0.list
-RUN apt-get update
-RUN apt-get install -y mongodb-org
-RUN ${TEMP_PATH}/scripts/${PRODUCT_NAME}-install.sh
-RUN mongod --bind_ip_all &
+RUN chmod +x ${TEMP_PATH}/scripts/*.sh
+RUN ${TEMP_PATH}/scripts/install.sh
 # RUN sleep 5
 # RUN mongosh < ${INSTALL_PATH}/scripts/mongo-init.js
 
 USER ${PRODUCT_NAME}
-ENTRYPOINT [ "/opt/miracon/scripts/miracon-start.sh", ">", "${LOG_PATH}/${LOG_FOLDER}/start-up.log", "2>&1" ]
+ENTRYPOINT [ "/opt/miracon/scripts/start.sh" ]
 
 EXPOSE ${WEB_SERVER_PORT}
 EXPOSE ${MINECRAFT_PORT}
