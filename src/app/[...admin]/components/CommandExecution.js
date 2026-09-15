@@ -24,12 +24,11 @@ export default function CommandExecution() {
       const roles = Array.isArray(userInfo?.roleIds) ? userInfo.roleIds : [];
       const pulledCommands = await pullConsoleCommands();
       const commands = Array.isArray(pulledCommands) ? pulledCommands : [];
-      const tempCommands = commands.filter(command => { //TODO: This is filtering out commands which should be allowed.
+      const tempCommands = commands.filter(command => {
         const commandRoles = Array.isArray(command.roles) ? command.roles : [];
-        return roles.some(role => commandRoles.includes(role));
+        return roles.some(role => commandRoles.includes(role)) ? command : undefined;
       });
-      // setConsoleCommands(tempCommands);
-      setConsoleCommands(commands);
+      setConsoleCommands(tempCommands);
     };
     setConsoleCommandsState();
   }, [userInfo]);
